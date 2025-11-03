@@ -1,3 +1,5 @@
+@import 'leaflet/dist/leaflet.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -109,5 +111,18 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Leaflet map styling */
+  .leaflet-container {
+    font-family: inherit;
+  }
+  
+  .leaflet-popup-content-wrapper {
+    @apply rounded-lg shadow-[var(--shadow-card)];
+  }
+  
+  .leaflet-popup-tip {
+    @apply bg-card;
   }
 }

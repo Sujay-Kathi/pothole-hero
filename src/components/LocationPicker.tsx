@@ -1,7 +1,21 @@
-import { useState, useCallback, useEffect } from "react";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
-import { Input } from "@/components/ui/input";
+import { useState, useCallback } from "react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import type { LatLngExpression } from "leaflet";
+import L from "leaflet";
 import { MapPin } from "lucide-react";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default marker icon in React-Leaflet
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
 
 interface LocationPickerProps {
   onLocationSelect: (lat: number, lng: number, address: string, area: string) => void;
@@ -9,155 +23,133 @@ interface LocationPickerProps {
   longitude: number | null;
 }
 
-const containerStyle = {
-  width: '100%',
-  height: '400px'
-};
+const defaultCenter: LatLngExpression = [12.9716, 77.5946]; // Bangalore coordinates
 
-const defaultCenter = {
-  lat: 12.9716, // Bangalore coordinates
-  lng: 77.5946
-};
+function MapClickHandler({ 
+  onMapClick 
+}: { 
+  onMapClick: (lat: number, lng: number) => void 
+}) {
+  useMapEvents({
+    click: (e) => {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
 
 const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPickerProps) => {
-  const [apiKey, setApiKey] = useState("");
-  const [showKeyInput, setShowKeyInput] = useState(true);
-  const [mapCenter, setMapCenter] = useState(defaultCenter);
-  const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(
-    latitude && longitude ? { lat: latitude, lng: longitude } : null
+  const [mapCenter] = useState<LatLngExpression>(
+    latitude && longitude ? [latitude, longitude] : defaultCenter
   );
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem("google_maps_api_key");
-    if (savedKey) {
-      setApiKey(savedKey);
-      setShowKeyInput(false);
-    }
-  }, []);
-
-  const handleApiKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (apiKey.trim()) {
-      localStorage.setItem("google_maps_api_key", apiKey);
-      setShowKeyInput(false);
-    }
-  };
+  const [markerPosition, setMarkerPosition] = useState<LatLngExpression | null>(
+    latitude && longitude ? [latitude, longitude] : null
+  );
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    setIsGeocoding(true);
     try {
+      // Using OpenStreetMap's Nominatim API (free, no API key needed)
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'PotholeHeroApp/1.0'
+          }
+        }
       );
+      
       const data = await response.json();
       
-      if (data.results && data.results.length > 0) {
-        const result = data.results[0];
-        const addressComponents = result.address_components;
+      if (data && data.address) {
+        const address = data.display_name;
         
-        // Extract area name (locality or sublocality)
-        const areaComponent = addressComponents.find(
-          (component: any) => 
-            component.types.includes("sublocality") || 
-            component.types.includes("locality")
-        );
+        // Extract area name from address components
+        const areaName = 
+          data.address.suburb || 
+          data.address.neighbourhood || 
+          data.address.locality || 
+          data.address.city_district ||
+          data.address.city ||
+          "Unknown Area";
         
         return {
-          address: result.formatted_address,
-          area: areaComponent?.long_name || "Unknown Area"
+          address,
+          area: areaName
         };
       }
     } catch (error) {
       console.error("Geocoding error:", error);
+    } finally {
+      setIsGeocoding(false);
     }
     
     return {
       address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
       area: "Unknown Area"
     };
-  }, [apiKey]);
+  }, []);
 
-  const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      
-      setMarkerPosition({ lat, lng });
-      
-      const { address, area } = await reverseGeocode(lat, lng);
-      onLocationSelect(lat, lng, address, area);
-    }
+  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+    setMarkerPosition([lat, lng]);
+    
+    const { address, area } = await reverseGeocode(lat, lng);
+    onLocationSelect(lat, lng, address, area);
   }, [onLocationSelect, reverseGeocode]);
 
-  if (showKeyInput) {
-    return (
-      <div className="space-y-4 p-6 border rounded-lg bg-muted/30">
-        <div className="flex items-start gap-3">
-          <MapPin className="h-5 w-5 text-primary mt-1" />
-          <div className="flex-1">
-            <h3 className="font-semibold mb-2">Google Maps API Key Required</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              To use the location picker, please enter your Google Maps API key. 
-              Get one at <a href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console</a>
-            </p>
-            <form onSubmit={handleApiKeySubmit} className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="Enter your Google Maps API Key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="flex-1"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-              >
-                Save
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const getCoordinates = (position: LatLngExpression): [number, number] => {
+    if (Array.isArray(position)) {
+      return position as [number, number];
+    }
+    return [0, 0];
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <label className="block text-sm font-medium">
           Location <span className="text-destructive">*</span>
         </label>
-        <button
-          onClick={() => setShowKeyInput(true)}
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          Change API Key
-        </button>
+        {isGeocoding && (
+          <span className="text-xs text-muted-foreground animate-pulse">
+            Loading address...
+          </span>
+        )}
       </div>
       
-      <p className="text-sm text-muted-foreground">
-        Click on the map to mark the pothole location
-      </p>
+      <div className="flex items-start gap-3 p-4 border rounded-lg bg-muted/30">
+        <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm text-muted-foreground">
+            <strong>Click anywhere on the map</strong> to mark the exact pothole location. 
+            The address will be automatically filled for you.
+          </p>
+        </div>
+      </div>
       
-      <div className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)]">
-        <LoadScript googleMapsApiKey={apiKey}>
-          <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={markerPosition || mapCenter}
-            zoom={13}
-            onClick={handleMapClick}
-            options={{
-              streetViewControl: false,
-              mapTypeControl: false,
-            }}
-          >
-            {markerPosition && <Marker position={markerPosition} />}
-          </GoogleMap>
-        </LoadScript>
+      <div className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)] relative" style={{ height: '400px' }}>
+        <MapContainer
+          center={mapCenter}
+          zoom={13}
+          style={{ height: '100%', width: '100%' }}
+          scrollWheelZoom={true}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapClickHandler onMapClick={handleMapClick} />
+          {markerPosition && <Marker position={markerPosition} />}
+        </MapContainer>
       </div>
       
       {markerPosition && (
-        <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
-          <strong>Selected:</strong> {markerPosition.lat.toFixed(6)}, {markerPosition.lng.toFixed(6)}
+        <div className="text-sm bg-muted/30 p-3 rounded-md border">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <strong>Selected Coordinates:</strong> {getCoordinates(markerPosition)[0].toFixed(6)}, {getCoordinates(markerPosition)[1].toFixed(6)}
+          </div>
         </div>
       )}
     </div>
