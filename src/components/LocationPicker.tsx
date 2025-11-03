@@ -1,20 +1,6 @@
-import { useState, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import L from "leaflet";
+import { useState, useCallback, useEffect } from "react";
 import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
-
-// Fix for default marker icon in React-Leaflet
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-});
 
 interface LocationPickerProps {
   onLocationSelect: (lat: number, lng: number, address: string, area: string) => void;
@@ -24,30 +10,22 @@ interface LocationPickerProps {
 
 const defaultCenter: [number, number] = [12.9716, 77.5946]; // Bangalore coordinates
 
-interface MapEventsProps {
-  onMapClick: (lat: number, lng: number) => void;
-}
-
-function MapEvents({ onMapClick }: MapEventsProps) {
-  useMapEvents({
-    click: (e) => {
-      onMapClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
 const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPickerProps) => {
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(
     latitude && longitude ? [latitude, longitude] : null
   );
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const mapCenter = latitude && longitude ? [latitude, longitude] : defaultCenter;
+
+  // Ensure we only render the map on the client side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
     try {
-      // Using OpenStreetMap's Nominatim API (free, no API key needed)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
         {
@@ -62,7 +40,6 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
       if (data && data.address) {
         const address = data.display_name;
         
-        // Extract area name from address components
         const areaName = 
           data.address.suburb || 
           data.address.neighbourhood || 
@@ -71,10 +48,7 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
           data.address.city ||
           "Unknown Area";
         
-        return {
-          address,
-          area: areaName
-        };
+        return { address, area: areaName };
       }
     } catch (error) {
       console.error("Geocoding error:", error);
@@ -95,6 +69,49 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
     const { address, area } = await reverseGeocode(lat, lng);
     onLocationSelect(lat, lng, address, area);
   }, [onLocationSelect, reverseGeocode]);
+
+  // Dynamically import and render the map component
+  const MapComponent = useCallback(() => {
+    if (!isMounted) return null;
+
+    // Dynamic import to avoid SSR issues
+    const { MapContainer, TileLayer, Marker, useMapEvents } = require("react-leaflet");
+    const L = require("leaflet");
+
+    // Fix marker icons
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconUrl: require('leaflet/dist/images/marker-icon.png'),
+      iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+      shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+    });
+
+    function MapEvents() {
+      useMapEvents({
+        click: (e: any) => {
+          handleMapClick(e.latlng.lat, e.latlng.lng);
+        },
+      });
+      return null;
+    }
+
+    return (
+      <MapContainer
+        center={mapCenter}
+        zoom={13}
+        scrollWheelZoom={true}
+        style={{ height: '100%', width: '100%' }}
+        key="map-container"
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        <MapEvents />
+        {markerPosition && <Marker position={markerPosition} />}
+      </MapContainer>
+    );
+  }, [isMounted, mapCenter, markerPosition, handleMapClick]);
 
   return (
     <div className="space-y-4">
@@ -120,19 +137,13 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
       </div>
       
       <div className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)]" style={{ height: '400px', width: '100%' }}>
-        <MapContainer
-          center={mapCenter as [number, number]}
-          zoom={13}
-          scrollWheelZoom={true}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-          <MapEvents onMapClick={handleMapClick} />
-          {markerPosition && <Marker position={markerPosition} />}
-        </MapContainer>
+        {isMounted ? (
+          <MapComponent />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center bg-muted">
+            <p className="text-muted-foreground">Loading map...</p>
+          </div>
+        )}
       </div>
       
       {markerPosition && (
