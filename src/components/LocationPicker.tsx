@@ -27,11 +27,14 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const currentLocationMarkerRef = useRef<L.CircleMarker | null>(null);
 
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(
     latitude && longitude ? [latitude, longitude] as [number, number] : null
   );
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
@@ -77,16 +80,59 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
     onLocationSelect(lat, lng, address, area);
   }, [onLocationSelect, reverseGeocode]);
 
+  // Get user's current location
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userPos: [number, number] = [
+            position.coords.latitude,
+            position.coords.longitude
+          ];
+          setUserLocation(userPos);
+          setIsLoadingLocation(false);
+        },
+        (error) => {
+          console.log('Geolocation error:', error);
+          setIsLoadingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      setIsLoadingLocation(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
-    const startCenter = (latitude && longitude) ? [latitude, longitude] as [number, number] : defaultCenter;
-    const map = L.map(mapContainerRef.current).setView(startCenter, 13);
+    // Use user location if available, otherwise provided lat/lng, otherwise default
+    const startCenter = userLocation || 
+      (latitude && longitude ? [latitude, longitude] as [number, number] : defaultCenter);
+    
+    const map = L.map(mapContainerRef.current).setView(startCenter, 15);
     mapRef.current = map;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    // Show user's current location as a blue circle
+    if (userLocation) {
+      currentLocationMarkerRef.current = L.circleMarker(userLocation, {
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.3,
+        radius: 10,
+        weight: 2
+      }).addTo(map);
+      
+      currentLocationMarkerRef.current.bindPopup('Your current location');
+    }
 
     // Initialize marker if position provided
     if (latitude && longitude) {
@@ -103,19 +149,43 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
+      currentLocationMarkerRef.current = null;
     };
-  }, [latitude, longitude, handleMapClick]);
+  }, [latitude, longitude, handleMapClick, userLocation]);
+
+  const recenterOnUser = useCallback(() => {
+    if (mapRef.current && userLocation) {
+      mapRef.current.setView(userLocation, 15, { animate: true });
+    }
+  }, [userLocation]);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <label className="block text-sm font-medium">
-          Location <span className="text-destructive">*</span>
-        </label>
-        {isGeocoding && (
-          <span className="text-xs text-muted-foreground animate-pulse">
-            Loading address...
-          </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <label className="block text-sm font-medium">
+            Location <span className="text-destructive">*</span>
+          </label>
+          {isLoadingLocation && (
+            <span className="text-xs text-muted-foreground animate-pulse">
+              Getting your location...
+            </span>
+          )}
+          {isGeocoding && (
+            <span className="text-xs text-muted-foreground animate-pulse">
+              Loading address...
+            </span>
+          )}
+        </div>
+        {userLocation && (
+          <button
+            type="button"
+            onClick={recenterOnUser}
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+          >
+            <MapPin className="h-3 w-3" />
+            My Location
+          </button>
         )}
       </div>
 
@@ -123,8 +193,16 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
         <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm text-muted-foreground">
-            <strong>Click anywhere on the map</strong> to mark the exact pothole location.
-            The address will be automatically filled for you.
+            {userLocation ? (
+              <>
+                <strong>Map centered on your location!</strong> Click anywhere to mark the exact pothole location.
+              </>
+            ) : (
+              <>
+                <strong>Click anywhere on the map</strong> to mark the exact pothole location.
+              </>
+            )}
+            {' '}The address will be automatically filled for you.
           </p>
         </div>
       </div>
