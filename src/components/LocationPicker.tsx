@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import type { LatLngExpression } from "leaflet";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
@@ -23,13 +22,13 @@ interface LocationPickerProps {
   longitude: number | null;
 }
 
-const defaultCenter: LatLngExpression = [12.9716, 77.5946]; // Bangalore coordinates
+const defaultCenter: [number, number] = [12.9716, 77.5946]; // Bangalore coordinates
 
-function MapClickHandler({ 
-  onMapClick 
-}: { 
-  onMapClick: (lat: number, lng: number) => void 
-}) {
+interface MapEventsProps {
+  onMapClick: (lat: number, lng: number) => void;
+}
+
+function MapEvents({ onMapClick }: MapEventsProps) {
   useMapEvents({
     click: (e) => {
       onMapClick(e.latlng.lat, e.latlng.lng);
@@ -39,13 +38,11 @@ function MapClickHandler({
 }
 
 const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPickerProps) => {
-  const [mapCenter] = useState<LatLngExpression>(
-    latitude && longitude ? [latitude, longitude] : defaultCenter
-  );
-  const [markerPosition, setMarkerPosition] = useState<LatLngExpression | null>(
+  const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(
     latitude && longitude ? [latitude, longitude] : null
   );
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const mapCenter = latitude && longitude ? [latitude, longitude] : defaultCenter;
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     setIsGeocoding(true);
@@ -92,18 +89,12 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
   }, []);
 
   const handleMapClick = useCallback(async (lat: number, lng: number) => {
-    setMarkerPosition([lat, lng]);
+    const position: [number, number] = [lat, lng];
+    setMarkerPosition(position);
     
     const { address, area } = await reverseGeocode(lat, lng);
     onLocationSelect(lat, lng, address, area);
   }, [onLocationSelect, reverseGeocode]);
-
-  const getCoordinates = (position: LatLngExpression): [number, number] => {
-    if (Array.isArray(position)) {
-      return position as [number, number];
-    }
-    return [0, 0];
-  };
 
   return (
     <div className="space-y-4">
@@ -128,18 +119,18 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
         </div>
       </div>
       
-      <div className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)] relative" style={{ height: '400px' }}>
+      <div className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)]" style={{ height: '400px', width: '100%' }}>
         <MapContainer
-          center={mapCenter}
+          center={mapCenter as [number, number]}
           zoom={13}
-          style={{ height: '100%', width: '100%' }}
           scrollWheelZoom={true}
+          style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          <MapClickHandler onMapClick={handleMapClick} />
+          <MapEvents onMapClick={handleMapClick} />
           {markerPosition && <Marker position={markerPosition} />}
         </MapContainer>
       </div>
@@ -148,7 +139,7 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
         <div className="text-sm bg-muted/30 p-3 rounded-md border">
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="h-4 w-4" />
-            <strong>Selected Coordinates:</strong> {getCoordinates(markerPosition)[0].toFixed(6)}, {getCoordinates(markerPosition)[1].toFixed(6)}
+            <strong>Selected Coordinates:</strong> {markerPosition[0].toFixed(6)}, {markerPosition[1].toFixed(6)}
           </div>
         </div>
       )}
