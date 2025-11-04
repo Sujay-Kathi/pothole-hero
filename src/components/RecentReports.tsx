@@ -11,33 +11,23 @@ interface Report {
   address: string;
   duration: string;
   created_at: string;
-  mail_status: string;
 }
 
 const RecentReports = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortByArea, setSortByArea] = useState(false);
 
   useEffect(() => {
     fetchReports();
-  }, [sortByArea]);
+  }, []);
 
   const fetchReports = async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('pothole_reports')
         .select('*')
-        .eq('mail_status', 'sent')
+        .order('created_at', { ascending: false })
         .limit(6);
-
-      if (sortByArea) {
-        query = query.order('area_name', { ascending: true });
-      } else {
-        query = query.order('created_at', { ascending: false });
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
       setReports(data || []);
@@ -89,15 +79,7 @@ const RecentReports = () => {
   return (
     <section className="py-16 bg-muted/30">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center gap-6 mb-12">
-          <h2 className="text-3xl font-bold text-center">Recent Reports</h2>
-          <button
-            onClick={() => setSortByArea(!sortByArea)}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity shadow-[var(--shadow-elevated)]"
-          >
-            {sortByArea ? '📅 Sort by Date' : '📍 Sort by Area'}
-          </button>
-        </div>
+        <h2 className="text-3xl font-bold text-center mb-12">Recent Reports</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reports.map((report) => (
             <Card key={report.id} className="overflow-hidden hover:shadow-[var(--shadow-elevated)] transition-shadow">
