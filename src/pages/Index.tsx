@@ -1,13 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Hero from "@/components/Hero";
 import ReportForm from "@/components/ReportForm";
 import RecentReports from "@/components/RecentReports";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
   const [showForm, setShowForm] = useState(false);
+  const [totalReports, setTotalReports] = useState(0);
 
-  const handleReportSuccess = (reportData: any) => {
+  useEffect(() => {
+    fetchTotalReports();
+  }, []);
+
+  const fetchTotalReports = async () => {
+    const { count } = await supabase
+      .from('pothole_reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('mail_status', 'sent');
+    
+    setTotalReports(count || 0);
+  };
+
+  const handleReportSuccess = async (reportData: any) => {
     // Generate email content
     const subject = `Pothole Report - ${reportData.area_name}`;
     
@@ -48,6 +64,15 @@ Best regards`;
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=comm@bbmp.gov.in&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.open(gmailUrl, '_blank');
     }
+
+    // Update mail_status to 'sent'
+    await supabase
+      .from('pothole_reports')
+      .update({ mail_status: 'sent' })
+      .eq('id', reportData.id);
+
+    // Refresh total reports count
+    fetchTotalReports();
   };
 
   return (
@@ -65,14 +90,19 @@ Best regards`;
               </div>
               <h1 className="text-xl font-bold">Pothole Hero</h1>
             </button>
-            {showForm && (
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Back to Home
-              </button>
-            )}
+            <div className="flex items-center gap-4">
+              <Badge variant="secondary" className="text-sm px-3 py-1">
+                {totalReports} Reports Submitted
+              </Badge>
+              {showForm && (
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Back to Home
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
