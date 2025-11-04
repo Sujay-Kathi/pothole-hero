@@ -56,12 +56,15 @@ Best regards`;
       <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowForm(false)}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
                 PH
               </div>
               <h1 className="text-xl font-bold">Pothole Hero</h1>
-            </div>
+            </button>
             {showForm && (
               <button
                 onClick={() => setShowForm(false)}
