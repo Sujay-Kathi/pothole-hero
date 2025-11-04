@@ -10,7 +10,8 @@ const Index = () => {
   const handleReportSuccess = (reportData: any) => {
     // Generate email content
     const subject = `Pothole Report - ${reportData.area_name}`;
-    const body = `Dear BBMP Team,
+    
+    let body = `Dear BBMP Team,
 
 I am reporting a pothole that needs urgent attention in ${reportData.area_name}.
 
@@ -19,8 +20,14 @@ Location Details:
 - Address: ${reportData.address}
 - Coordinates: ${reportData.latitude}, ${reportData.longitude}
 - Duration: ${reportData.duration.replace(/-/g, ' ')}
+`;
 
-${reportData.description ? `Additional Details:\n${reportData.description}\n\n` : ''}
+    // Only include additional details if description exists
+    if (reportData.description && reportData.description.trim()) {
+      body += `\nAdditional Details:\n${reportData.description}\n`;
+    }
+
+    body += `
 Image Evidence: ${reportData.image_url}
 
 This pothole poses a safety hazard to commuters. I request immediate action to repair this road damage.
@@ -29,11 +36,18 @@ Thank you for your attention to this matter.
 
 Best regards`;
 
-    // Create mailto link
-    const mailtoLink = `mailto:comm@bbmp.gov.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    // Detect if mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    // Open mailto link
-    window.location.href = mailtoLink;
+    if (isMobile) {
+      // On mobile, use mailto to open native Gmail app
+      const mailtoLink = `mailto:comm@bbmp.gov.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+    } else {
+      // On PC, open Gmail web interface
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=comm@bbmp.gov.in&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(gmailUrl, '_blank');
+    }
   };
 
   return (
