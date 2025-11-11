@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Hero from "@/components/Hero";
 import ReportForm from "@/components/ReportForm";
 import RecentReports from "@/components/RecentReports";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
@@ -105,23 +107,23 @@ A Concerned Citizen of Bangalore`;
               </div>
               <h1 className="text-xl font-bold">Pothole Hero</h1>
             </button>
-            {showForm && (
-            <div className="flex items-center gap-4">
-              {!showForm && (
-                <Badge variant="secondary" className="text-sm px-3 py-1.5 bg-primary/10 text-primary border-primary/20">
-                  {totalReports} Reports Submitted
-                </Badge>
-              )}
-              {showForm && (
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="text-sm px-3 py-1.5 bg-primary/10 text-primary border-primary/20">
+                {totalReports} Reports
+              </Badge>
+              {showForm ? (
                 <button
                   onClick={() => setShowForm(false)}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Back to Home
                 </button>
+              ) : (
+                <Link to="/dashboard">
+                  <Button variant="outline" size="sm">Dashboard</Button>
+                </Link>
               )}
             </div>
-            )}
           </div>
         </div>
       </header>
