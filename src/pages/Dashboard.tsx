@@ -5,15 +5,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Clock, Filter, Calendar } from "lucide-react";
+import { MapPin, Clock, Filter, Calendar, Map as MapIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
+import DashboardMap from "@/components/DashboardMap";
 
 interface Report {
   id: string;
   image_url: string;
   area_name: string;
   address: string;
+  latitude: number;
+  longitude: number;
   duration: string;
   status: string;
   created_at: string;
@@ -271,6 +274,44 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Map View */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <MapIcon className="h-6 w-6" />
+            <h2 className="text-2xl font-bold">Map View</h2>
+          </div>
+          <Card>
+            <CardContent className="p-6">
+              <DashboardMap reports={filteredReports} />
+              
+              {/* Legend */}
+              <div className="mt-4 flex flex-wrap gap-3 items-center justify-center">
+                <span className="text-sm font-medium text-muted-foreground">Status Legend:</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span className="text-xs">Pending</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-xs">Under Review</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                  <span className="text-xs">In Progress</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-xs">Resolved</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-xs">Rejected</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Reports List */}
         <div className="space-y-4">
