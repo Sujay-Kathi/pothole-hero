@@ -1,1 +1,4 @@
 project_id = "kvfkgnoemsuopfrdylzo"
+
+[functions.analyze-pothole]
+verify_jwt = false
