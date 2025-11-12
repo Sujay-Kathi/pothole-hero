@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Clock, Filter, Calendar, Map as MapIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
-import DashboardMap from "@/components/DashboardMap";
+const DashboardMap = lazy(() => import("@/components/DashboardMap"));
 
 interface Report {
   id: string;
@@ -34,7 +34,10 @@ const Dashboard = () => {
     pending: 0,
     in_progress: 0,
     resolved: 0,
-  });
+});
+
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
 
   useEffect(() => {
     fetchReports();
@@ -283,7 +286,13 @@ const Dashboard = () => {
           </div>
           <Card>
             <CardContent className="p-6">
-              <DashboardMap reports={filteredReports} />
+              {isClient ? (
+                <Suspense fallback={<div className="h-[500px] w-full bg-muted rounded-lg" />}> 
+                  <DashboardMap reports={filteredReports} />
+                </Suspense>
+              ) : (
+                <div className="h-[500px] w-full bg-muted rounded-lg" />
+              )}
               
               {/* Legend */}
               <div className="mt-4 flex flex-wrap gap-3 items-center justify-center">
