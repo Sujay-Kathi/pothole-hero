@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -87,8 +87,9 @@ const formatStatus = (status: string) => {
 const DashboardMap = ({ reports }: DashboardMapProps) => {
   // Default center (Bangalore)
   const defaultCenter: [number, number] = [12.9716, 77.5946];
+  const validReports = reports.filter(r => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
 
-  if (reports.length === 0) {
+  if (validReports.length === 0) {
     return (
       <div className="h-[500px] w-full bg-muted rounded-lg flex items-center justify-center">
         <p className="text-muted-foreground">No reports to display on map</p>
@@ -109,39 +110,14 @@ const DashboardMap = ({ reports }: DashboardMapProps) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        <FitBounds reports={reports} />
+        <FitBounds reports={validReports} />
 
-        {reports.map((report) => (
+        {validReports.map((report) => (
           <Marker
             key={report.id}
             position={[report.latitude, report.longitude]}
             icon={getMarkerIcon(report.status)}
-          >
-            <Popup>
-              <div style={{ minWidth: '200px' }}>
-                <img 
-                  src={report.image_url} 
-                  alt={report.area_name}
-                  style={{ width: '100%', height: '128px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }}
-                />
-                <h3 style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{report.area_name}</h3>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>{report.address}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span 
-                    style={{
-                      fontSize: '12px',
-                      padding: '4px 8px',
-                      borderRadius: '9999px',
-                      fontWeight: '500',
-                      ...getStatusBadgeStyle(report.status)
-                    }}
-                  >
-                    {formatStatus(report.status)}
-                  </span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
+          />
         ))}
       </MapContainer>
     </div>
