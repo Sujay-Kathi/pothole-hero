@@ -118,18 +118,23 @@ const DashboardMap = ({ reports }: DashboardMapProps) => {
             icon={getMarkerIcon(report.status)}
           >
             <Popup>
-              <div className="min-w-[200px]">
+              <div style={{ minWidth: '200px' }}>
                 <img 
                   src={report.image_url} 
                   alt={report.area_name}
-                  className="w-full h-32 object-cover rounded mb-2"
+                  style={{ width: '100%', height: '128px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }}
                 />
-                <h3 className="font-semibold text-sm mb-1">{report.area_name}</h3>
-                <p className="text-xs text-gray-600 mb-2">{report.address}</p>
-                <div className="flex items-center gap-2">
+                <h3 style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{report.area_name}</h3>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>{report.address}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span 
-                    className="text-xs px-2 py-1 rounded-full font-medium"
-                    style={getStatusBadgeStyle(report.status)}
+                    style={{
+                      fontSize: '12px',
+                      padding: '4px 8px',
+                      borderRadius: '9999px',
+                      fontWeight: '500',
+                      ...getStatusBadgeStyle(report.status)
+                    }}
                   >
                     {formatStatus(report.status)}
                   </span>
