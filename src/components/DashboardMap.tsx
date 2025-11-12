@@ -37,44 +37,27 @@ const FitBounds = ({ reports }: { reports: Report[] }) => {
 const getMarkerIcon = (status: string) => {
   const getColor = () => {
     switch(status) {
-      case "pending": return "#eab308"; // yellow
-      case "under_review": return "#3b82f6"; // blue
-      case "in_progress": return "#a855f7"; // purple
-      case "resolved": return "#22c55e"; // green
-      case "rejected": return "#ef4444"; // red
-      default: return "#6b7280"; // gray
+      case "pending": return "#eab308";
+      case "under_review": return "#3b82f6";
+      case "in_progress": return "#a855f7";
+      case "resolved": return "#22c55e";
+      case "rejected": return "#ef4444";
+      default: return "#6b7280";
     }
   };
 
   const color = getColor();
   
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `
-      <div style="
-        background-color: ${color};
-        width: 28px;
-        height: 28px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      ">
-        <div style="
-          width: 12px;
-          height: 12px;
-          background-color: white;
-          border-radius: 50%;
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-        "></div>
-      </div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
+  return new L.Icon({
+    iconUrl: `data:image/svg+xml;utf8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
+        <path fill="${color}" stroke="white" stroke-width="2" d="M12 0C7.589 0 4 3.589 4 8c0 5.25 8 18 8 18s8-12.75 8-18c0-4.411-3.589-8-8-8z"/>
+        <circle cx="12" cy="8" r="3" fill="white"/>
+      </svg>
+    `)}`,
+    iconSize: [24, 36],
+    iconAnchor: [12, 36],
+    popupAnchor: [0, -36],
   });
 };
 
