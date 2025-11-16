@@ -148,17 +148,14 @@ P.S. If you need any additional information or would like me to provide more det
             <div className="flex items-center gap-4">
               {!showForm && (
                 <>
-                  <Badge variant="secondary" className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm">
+                  <div className="rounded-full border border-transparent bg-orange-100 text-orange-800 font-semibold transition-colors hover:bg-orange-200/80 hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm">
                     <FileText className="h-4 w-4" />
                     <span className="font-semibold">{totalReports}</span>
                     <span className="text-muted-foreground">Total Reports</span>
-                  </Badge>
-                  <a
-                    href="/dashboard"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Dashboard
-                  </a>
+                  </div>
+                  <Button asChild variant="outline">
+                    <a href="/dashboard">Dashboard</a>
+                  </Button>
                 </>
               )}
               {showForm && (
