@@ -12,7 +12,7 @@ const Hero = ({ onGetStarted }: HeroProps) => {
       
       <div className="container mx-auto px-4 py-16 text-center relative z-10">
         <div className="max-w-3xl mx-auto space-y-6">
-          <img src="/logo.jpg" alt="Pothole Hero Logo" className="mx-auto h-14 w-auto" />
+  
           <h1 className="text-4xl md:text-6xl font-bold bg-[image:var(--gradient-hero)] bg-clip-text text-transparent animate-fade-in">
             Report Road Potholes
           </h1>
