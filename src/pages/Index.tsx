@@ -4,7 +4,6 @@ import ReportForm from "@/components/ReportForm";
 import RecentReports, { RecentReportsHandles } from "@/components/RecentReports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { FileText, CheckCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Report } from "@/types/report";
