@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface HeroProps {
   onGetStarted: () => void;
@@ -12,11 +13,6 @@ const Hero = ({ onGetStarted }: HeroProps) => {
       
       <div className="container mx-auto px-4 py-16 text-center relative z-10">
         <div className="max-w-3xl mx-auto space-y-6">
-<<<<<<< HEAD
-         
-=======
-  
->>>>>>> 016fa7340bf254f108016e82e84e3986fea74046
           <h1 className="text-4xl md:text-6xl font-bold bg-[image:var(--gradient-hero)] bg-clip-text text-transparent animate-fade-in">
             Report Road Potholes
           </h1>
@@ -42,6 +38,11 @@ const Hero = ({ onGetStarted }: HeroProps) => {
             >
               View Recent Reports
             </Button>
+            <Link to="/dashboard">
+              <Button size="lg" variant="outline">
+                Dashboard
+              </Button>
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">
