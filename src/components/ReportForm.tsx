@@ -22,76 +22,8 @@ const ReportForm = ({ onSuccess }: ReportFormProps) => {
   const [duration, setDuration] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [imageVerified, setImageVerified] = useState(false);
-  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
   
   const { toast } = useToast();
-
-  const handleImageChange = async (file: File | null) => {
-    setImage(file);
-    setImageVerified(false);
-    setTempImageUrl(null);
-
-    if (!file) return;
-
-    setIsAnalyzing(true);
-
-    try {
-      // Upload image temporarily to analyze it
-      const fileExt = file.name.split('.').pop();
-      const fileName = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('pothole-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('pothole-images')
-        .getPublicUrl(filePath);
-
-      setTempImageUrl(publicUrl);
-
-      // Analyze the image with AI
-      const { data, error } = await supabase.functions.invoke('analyze-pothole', {
-        body: { imageUrl: publicUrl }
-      });
-
-      if (error) throw error;
-
-      if (data.isPothole) {
-        setImageVerified(true);
-        toast({
-          title: "Image Verified ✓",
-          description: "This appears to be a pothole. You can proceed with the report.",
-        });
-      } else {
-        setImage(null);
-        setTempImageUrl(null);
-        // Delete the temporary image
-        await supabase.storage.from('pothole-images').remove([filePath]);
-        
-        toast({
-          title: "Image Not Valid",
-          description: data.reason || "This does not appear to be a pothole. Please upload a photo of a road pothole.",
-          variant: "destructive"
-        });
-      }
-    } catch (error: any) {
-      console.error('Error analyzing image:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "Could not analyze the image. Please try again.",
-        variant: "destructive"
-      });
-      setImage(null);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
   const handleLocationSelect = (lat: number, lng: number, addr: string, area: string) => {
     setLatitude(lat);
@@ -103,10 +35,10 @@ const ReportForm = ({ onSuccess }: ReportFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!image || !imageVerified || !latitude || !longitude || !address || !areaName || !duration) {
+    if (!image || !latitude || !longitude || !address || !areaName || !duration) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields and ensure the image is verified",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
@@ -115,8 +47,21 @@ const ReportForm = ({ onSuccess }: ReportFormProps) => {
     setIsSubmitting(true);
 
     try {
-      // Use the already uploaded and verified image URL
-      const publicUrl = tempImageUrl;
+      // Upload image to Supabase Storage
+      const fileExt = image.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('pothole-images')
+        .upload(filePath, image);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('pothole-images')
+        .getPublicUrl(filePath);
 
       // Insert report into database
       const { data: reportData, error: insertError } = await supabase
@@ -163,20 +108,7 @@ const ReportForm = ({ onSuccess }: ReportFormProps) => {
         </p>
       </div>
 
-      <ImageUpload image={image} onImageChange={handleImageChange} />
-      
-      {isAnalyzing && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Analyzing image with AI to verify it's a pothole...</span>
-        </div>
-      )}
-
-      {imageVerified && (
-        <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-500">
-          <span className="font-medium">✓ Image verified as a pothole</span>
-        </div>
-      )}
+      <ImageUpload image={image} onImageChange={setImage} />
 
       <LocationPicker
         onLocationSelect={handleLocationSelect}
@@ -239,7 +171,7 @@ const ReportForm = ({ onSuccess }: ReportFormProps) => {
         type="submit"
         size="lg"
         className="w-full"
-        disabled={isSubmitting || !imageVerified || isAnalyzing}
+        disabled={isSubmitting}
       >
         {isSubmitting ? (
           <>
