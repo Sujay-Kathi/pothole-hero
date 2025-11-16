@@ -6,7 +6,8 @@ import {
   CommandItem,
   CommandEmpty,
 } from "@/components/ui/command";
-import { useDebounce } from "@/hooks/use-debounce"; // Assuming a debounce hook exists
+import { useDebounce } from "@/hooks/use-debounce"; 
+import { cn } from "@/lib/utils";
 
 export interface NominatimResult {
   place_id: number;
@@ -21,9 +22,10 @@ export interface NominatimResult {
 
 interface LocationSearchProps {
   onLocationSelect: (result: NominatimResult) => void;
+  className?: string;
 }
 
-const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
+const LocationSearch = ({ onLocationSelect, className }: LocationSearchProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,10 +39,12 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
 
     setIsLoading(true);
     try {
+      // Bangalore bounding box
+      const viewbox = "77.3,12.7,77.9,13.2";
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           searchQuery
-        )}`
+        )}&viewbox=${viewbox}&bounded=1&countrycodes=in`
       );
       const data = await response.json();
       setResults(data);
@@ -63,16 +67,17 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
   };
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-md px-4">
+    <div className={cn("w-full", className)}>
       <Command className="rounded-lg border shadow-md">
         <CommandInput
           value={query}
           onValueChange={setQuery}
-          placeholder="Search for a location..."
+          placeholder="Search for a location in Bangalore..."
           className="h-10"
         />
-        {results.length > 0 && (
+        {(results.length > 0 || isLoading) && (
           <CommandList>
+            {isLoading && <CommandItem>Loading...</CommandItem>}
             <CommandEmpty>No results found.</CommandEmpty>
             {results.map((result) => (
               <CommandItem
@@ -85,7 +90,6 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
             ))}
           </CommandList>
         )}
-        {isLoading && <CommandList><CommandItem>Loading...</CommandItem></CommandList>}
       </Command>
     </div>
   );

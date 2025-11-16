@@ -108,9 +108,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
-                PH
-              </div>
+              <img src="/logo.jpg" alt="Pothole Hero" className="h-8 w-8" />
               <h1 className="text-xl font-bold">Pothole Hero Dashboard</h1>
             </div>
             <div className="flex items-center gap-4">
@@ -169,7 +167,10 @@ const Dashboard = () => {
                 <CardTitle>Report Locations ({allReports.length} reports)</CardTitle>
               </CardHeader>
               <CardContent className="relative">
-                <LocationSearch onLocationSelect={setSelectedLocation} />
+                <LocationSearch 
+                  onLocationSelect={setSelectedLocation}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-md px-4"
+                />
                 {allReports.length === 0 ? (
                   <div className="h-[400px] flex items-center justify-center bg-muted rounded-lg">
                     <p className="text-muted-foreground">No reports available. Submit a report to see it on the map.</p>

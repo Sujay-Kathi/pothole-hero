@@ -142,9 +142,7 @@ P.S. If you need any additional information or would like me to provide more det
               onClick={handleBackToHome}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
-                PH
-              </div>
+              <img src="/logo.jpg" alt="Pothole Hero" className="h-8 w-8" />
               <h1 className="text-xl font-bold">Pothole Hero</h1>
             </button>
             <div className="flex items-center gap-4">

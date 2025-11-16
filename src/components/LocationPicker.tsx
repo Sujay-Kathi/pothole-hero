@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import LocationSearch, { NominatimResult } from "./LocationSearch";
 
 // Fix for default marker icon in Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -64,7 +65,7 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
     return { address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`, area: "Unknown Area" };
   }, []);
 
-  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+  const handleMapClick = useCallback(async (lat: number, lng: number, zoom: number = 16) => {
     setMarkerPosition([lat, lng]);
 
     // Create or move marker
@@ -74,11 +75,18 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
       } else {
         markerRef.current.setLatLng([lat, lng]);
       }
+      mapRef.current.setView([lat, lng], zoom, { animate: true });
     }
 
     const { address, area } = await reverseGeocode(lat, lng);
     onLocationSelect(lat, lng, address, area);
   }, [onLocationSelect, reverseGeocode]);
+
+  const handleLocationSearch = (result: NominatimResult) => {
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+    handleMapClick(lat, lon, 18); // Zoom in closer for search results
+  };
 
   // Get user's current location
   useEffect(() => {
@@ -193,25 +201,22 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
         <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm text-muted-foreground">
-            {userLocation ? (
-              <>
-                <strong>Map centered on your location!</strong> Click anywhere to mark the exact pothole location.
-              </>
-            ) : (
-              <>
-                <strong>Click anywhere on the map</strong> to mark the exact pothole location.
-              </>
-            )}
-            {' '}The address will be automatically filled for you.
+            <strong>Search for a location or click on the map</strong> to mark the exact pothole spot. The address will be automatically filled.
           </p>
         </div>
       </div>
 
       <div
         ref={mapContainerRef}
-        className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)]"
+        className="relative rounded-lg overflow-hidden border shadow-[var(--shadow-card)]"
         style={{ height: '400px', width: '100%' }}
-      />
+      >
+        <LocationSearch 
+          onLocationSelect={handleLocationSearch} 
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-sm px-4"
+        />
+      </div>
+
 
       {markerPosition && (
         <div className="text-sm bg-muted/30 p-3 rounded-md border">
