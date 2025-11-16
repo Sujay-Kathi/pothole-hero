@@ -4,12 +4,12 @@ import ReportForm from "@/components/ReportForm";
 import RecentReports, { RecentReportsHandles } from "@/components/RecentReports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { FileText, CheckCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Report } from "@/types/report";
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from "react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [showForm, setShowForm] = useState(false);
@@ -151,11 +151,19 @@ P.S. If you need any additional information or would like me to provide more det
                   <div className="rounded-full border border-transparent bg-orange-100 text-orange-800 font-semibold transition-colors hover:bg-orange-200/80 hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm">
                     <FileText className="h-4 w-4" />
                     <span className="font-semibold">{totalReports}</span>
+<<<<<<< HEAD
                     <span className="text-muted-foreground">Total Reports</span>
                   </div>
                   <Button asChild variant="outline">
                     <a href="/dashboard">Dashboard</a>
                   </Button>
+=======
+                    <span className="hidden sm:inline">Total Reports</span>
+                  </div>
+                  <Link to="/dashboard">
+                    <Button>Dashboard</Button>
+                  </Link>
+>>>>>>> 518989e95e329cdf6552c7c31b767dc16af32e43
                 </>
               )}
               {showForm && (
