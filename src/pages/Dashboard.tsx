@@ -113,11 +113,11 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-4">
               {/* Total Reports Counter */}
-              <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <div className="rounded-full border border-transparent bg-orange-100 text-orange-800 font-semibold transition-colors hover:bg-orange-200/80 flex items-center gap-2 px-3 py-1.5 text-sm">
                 <FileText className="h-4 w-4" />
                 <span className="font-semibold">{allReports.length}</span>
                 <span className="hidden sm:inline text-muted-foreground">Total Reports</span>
-              </Badge>
+              </div>
               <a
                 href="/"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
