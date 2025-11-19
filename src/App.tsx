@@ -12,7 +12,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="pothole-hero-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="pothole-hero-theme">
       <TooltipProvider>
         <Toaster />
         <Sonner />
