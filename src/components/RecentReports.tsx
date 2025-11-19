@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -13,13 +12,13 @@ interface Report {
   created_at: string;
 }
 
-const RecentReports = () => {
+export interface RecentReportsHandles {
+  refresh: () => void;
+}
+
+const RecentReports = forwardRef<RecentReportsHandles>((props, ref) => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchReports();
-  }, []);
 
   const fetchReports = async () => {
     try {
@@ -38,24 +37,34 @@ const RecentReports = () => {
     }
   };
 
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    refresh: fetchReports
+  }));
+
   const formatDuration = (duration: string) => {
     return duration.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   if (loading) {
     return (
-      <section className="py-16 bg-muted/30">
+      <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Recent Reports</h2>
+          <h2 className="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            Recent Reports
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden animate-pulse">
-                <div className="h-48 bg-muted" />
-                <CardContent className="p-4">
-                  <div className="h-4 bg-muted rounded mb-2" />
-                  <div className="h-3 bg-muted rounded w-2/3" />
-                </CardContent>
-              </Card>
+              <div key={i} className="glass-card rounded-3xl overflow-hidden animate-pulse">
+                <div className="h-56 bg-secondary/50" />
+                <div className="p-6">
+                  <div className="h-6 bg-secondary/50 rounded-lg mb-3" />
+                  <div className="h-4 bg-secondary/50 rounded-lg w-2/3" />
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -65,11 +74,15 @@ const RecentReports = () => {
 
   if (reports.length === 0) {
     return (
-      <section className="py-16 bg-muted/30">
+      <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Recent Reports</h2>
-          <div className="text-center text-muted-foreground">
-            No reports yet. Be the first to report a pothole!
+          <h2 className="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+            Recent Reports
+          </h2>
+          <div className="glass-card rounded-3xl p-12 text-center">
+            <p className="text-muted-foreground text-lg">
+              No reports yet. Be the first to report a pothole!
+            </p>
           </div>
         </div>
       </section>
@@ -77,40 +90,47 @@ const RecentReports = () => {
   }
 
   return (
-    <section className="py-16 bg-muted/30">
+    <section className="py-16">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Recent Reports</h2>
+        <h2 className="text-4xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+          Recent Reports
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden hover:shadow-[var(--shadow-elevated)] transition-shadow">
-              <div className="relative h-48 overflow-hidden">
+            <div
+              key={report.id}
+              className="glass-card rounded-3xl overflow-hidden group hover:scale-[1.02] transition-all duration-300 cursor-pointer"
+            >
+              <div className="relative h-56 overflow-hidden">
                 <img
                   src={report.image_url}
                   alt={`Pothole in ${report.area_name}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-[image:var(--gradient-overlay)]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               </div>
-              <CardContent className="p-4 space-y-2">
-                <h3 className="font-semibold text-lg">{report.area_name}</h3>
+              <div className="p-6 space-y-3">
+                <h3 className="font-bold text-xl">{report.area_name}</h3>
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
                   <span className="line-clamp-2">{report.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-4 w-4 text-primary" />
                   <span>Existed: {formatDuration(report.duration)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground pt-2 border-t border-white/10">
                   Reported {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>
     </section>
   );
-};
+});
+
+RecentReports.displayName = "RecentReports";
 
 export default RecentReports;

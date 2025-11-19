@@ -12,6 +12,7 @@ import DashboardFilters from "@/components/DashboardFilters";
 import DashboardReportCards from "@/components/DashboardReportCards";
 import DashboardStatistics from "@/components/DashboardStatistics";
 import LocationSearch, { NominatimResult } from "@/components/LocationSearch";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'map-analytics'>('overview');
@@ -40,7 +41,7 @@ const Dashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAllReports(data || []);
+      setAllReports((data as unknown as Report[]) || []);
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast({
@@ -102,25 +103,31 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/logo.jpg" alt="Pothole Hero" className="h-8 w-8" />
-              <h1 className="text-xl font-bold">Pothole Hero Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-zinc-900 dark:via-zinc-900 dark:to-black selection:bg-primary/20">
+      {/* Floating Header */}
+      <header className="fixed top-4 left-0 right-0 z-50 px-4">
+        <div className="container mx-auto">
+          <div className="glass rounded-full px-6 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
+                <img src="/logo.jpg" alt="Pothole Hero" className="relative h-10 w-10 rounded-full border-2 border-white/50" />
+              </div>
+              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+                Dashboard
+              </h1>
+              <ThemeToggle />
             </div>
             <div className="flex items-center gap-4">
               {/* Total Reports Counter */}
-              <div className="rounded-full border border-transparent bg-orange-100 text-orange-800 font-semibold transition-colors hover:bg-orange-200/80 flex items-center gap-2 px-3 py-1.5 text-sm">
+              <div className="glass px-4 py-1.5 rounded-full text-sm font-medium text-primary flex items-center gap-2 hover:bg-white/80 transition-colors cursor-default">
                 <FileText className="h-4 w-4" />
-                <span className="font-semibold">{allReports.length}</span>
+                <span className="font-bold">{allReports.length}</span>
                 <span className="hidden sm:inline">Total Reports</span>
               </div>
               <a
                 href="/"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-secondary/50"
               >
                 Back to Home
               </a>
@@ -130,70 +137,65 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-6">
-          <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+      <main className="container mx-auto px-4 pt-28 pb-12">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-8">
+          <TabsList className="glass p-1 rounded-full w-full max-w-md mx-auto grid grid-cols-2">
+            <TabsTrigger value="overview" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
+              <BarChart3 className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="map-analytics" className="flex items-center gap-2">
-              <Map className="h-4 w-4" />
+            <TabsTrigger value="map-analytics" className="rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-300">
+              <Map className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Map & Analytics</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <DashboardStatistics statistics={statistics} />
 
-            <DashboardFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              uniqueAreas={uniqueAreas}
-            />
+            <div className="glass-card rounded-3xl p-6 md:p-8">
+              <DashboardFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                uniqueAreas={uniqueAreas}
+              />
+            </div>
 
             <DashboardReportCards reports={filteredReports} />
           </TabsContent>
 
           {/* Map & Analytics Tab */}
-          <TabsContent value="map-analytics" className="space-y-6">
-            {/* Debug info - remove after testing */}
-            {console.log('Map & Analytics Tab - allReports:', allReports.length, 'filteredReports:', filteredReports.length)}
-
+          <TabsContent value="map-analytics" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Map - Shows ALL reports */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Report Locations ({allReports.length} reports)</CardTitle>
-              </CardHeader>
-              <CardContent className="relative">
-                <LocationSearch 
+            <div className="glass-card rounded-3xl overflow-hidden">
+              <div className="p-6 border-b border-white/10">
+                <h3 className="text-xl font-semibold">Report Locations ({allReports.length} reports)</h3>
+              </div>
+              <div className="p-6 relative">
+                <LocationSearch
                   onLocationSelect={setSelectedLocation}
-                  className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-md px-4"
+                  className="absolute top-8 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-md px-4"
                 />
                 {allReports.length === 0 ? (
-                  <div className="h-[400px] flex items-center justify-center bg-muted rounded-lg">
+                  <div className="h-[500px] flex items-center justify-center bg-secondary/30 rounded-2xl">
                     <p className="text-muted-foreground">No reports available. Submit a report to see it on the map.</p>
                   </div>
                 ) : (
-                  <DashboardMap reports={allReports} selectedLocation={selectedLocation} />
+                  <div className="rounded-2xl overflow-hidden shadow-inner">
+                    <DashboardMap reports={allReports} selectedLocation={selectedLocation} />
+                  </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Analytics - Shows FILTERED reports */}
             <div>
               {filteredReports.length === 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Analytics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[300px] flex items-center justify-center bg-muted rounded-lg">
-                      <p className="text-muted-foreground">No reports match the current filters.</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="glass-card rounded-3xl p-12 text-center">
+                  <h3 className="text-xl font-semibold mb-2">Analytics</h3>
+                  <p className="text-muted-foreground">No reports match the current filters.</p>
+                </div>
               ) : (
                 <DashboardAnalytics
                   reports={filteredReports}

@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Hero from "@/components/Hero";
 import ReportForm from "@/components/ReportForm";
 import RecentReports, { RecentReportsHandles } from "@/components/RecentReports";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, CheckCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Report } from "@/types/report";
 import { useToast } from "@/hooks/use-toast";
-import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const Index = () => {
   const [showForm, setShowForm] = useState(false);
@@ -133,32 +131,40 @@ P.S. If you need any additional information or would like me to provide more det
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleBackToHome}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <img src="/logo.jpg" alt="Pothole Hero" className="h-8 w-8" />
-              <h1 className="text-xl font-bold">Pothole Hero</h1>
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-zinc-900 dark:via-zinc-900 dark:to-black selection:bg-primary/20">
+      {/* Floating Header */}
+      <header className="fixed top-4 left-0 right-0 z-50 px-4">
+        <div className="container mx-auto">
+          <div className="glass rounded-full px-6 py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBackToHome}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
+                  <img src="/logo.jpg" alt="Pothole Hero" className="relative h-10 w-10 rounded-full border-2 border-white/50" />
+                </div>
+                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+                  Pothole Hero
+                </h1>
+              </button>
+              <ThemeToggle />
+            </div>
             <div className="flex items-center gap-4">
               {!showForm && (
                 <>
-                  <div className="rounded-full border border-transparent bg-orange-100 text-orange-800 font-semibold transition-colors hover:bg-orange-200/80 hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm">
+                  <div className="glass px-4 py-1.5 rounded-full text-sm font-medium text-primary flex items-center gap-2 hover:bg-white/80 transition-colors cursor-default">
                     <FileText className="h-4 w-4" />
-                    <span className="font-semibold">{totalReports}</span>
-                    <span className="hidden sm:inline">Total Reports</span>
+                    <span className="font-bold">{totalReports}</span>
+                    <span className="hidden sm:inline">Reports Filed</span>
                   </div>
                 </>
               )}
               {showForm && (
                 <button
                   onClick={handleBackToHome}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-4 py-2 rounded-full hover:bg-secondary/50"
                 >
                   Back to Home
                 </button>
@@ -169,57 +175,59 @@ P.S. If you need any additional information or would like me to provide more det
       </header>
 
       {/* Main Content */}
-      <main>
+      <main className="pt-28 pb-12 px-4">
         {!showForm ? (
           <>
             <Hero onGetStarted={() => setShowForm(true)} />
             <RecentReports ref={recentReportsRef} />
           </>
         ) : (
-          <section className="py-16">
-            <div className="container mx-auto px-4">
+          <section className="py-8">
+            <div className="container mx-auto max-w-4xl">
               {submissionStep === 'form' && (
-                <Card className="p-8 shadow-[var(--shadow-elevated)]">
+                <div className="glass-card rounded-3xl p-8 md:p-12 animate-in zoom-in-95 duration-500">
                   <ReportForm onSuccess={handleFormSuccess} />
-                </Card>
+                </div>
               )}
 
               {submissionStep === 'confirm' && (
-                <Card className="p-8 shadow-[var(--shadow-elevated)] text-center">
-                  <CardHeader>
-                    <Mail className="mx-auto h-12 w-12 text-primary" />
-                    <CardTitle className="mt-4 text-2xl">Check Your Email Client</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-muted-foreground">
+                <div className="glass-card rounded-3xl p-8 md:p-12 text-center animate-in zoom-in-95 duration-500">
+                  <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                    <Mail className="h-10 w-10 text-primary" />
+                  </div>
+                  <h2 className="text-3xl font-bold mb-4">Check Your Email Client</h2>
+                  <div className="space-y-4 max-w-lg mx-auto">
+                    <p className="text-muted-foreground text-lg">
                       We've opened your default email client with a pre-filled report.
                       Please send the email to notify the authorities.
                     </p>
-                    <p className="font-semibold">
-                      After sending the email, click the button below to confirm and log your submission.
-                    </p>
-                    <Button onClick={handleConfirmSubmission} size="lg" className="mt-4">
+                    <div className="bg-secondary/50 p-4 rounded-xl">
+                      <p className="font-semibold">
+                        After sending the email, click the button below to confirm and log your submission.
+                      </p>
+                    </div>
+                    <Button onClick={handleConfirmSubmission} size="lg" className="mt-6 w-full sm:w-auto rounded-full h-12 px-8 text-lg shadow-lg hover:shadow-primary/25">
                       <CheckCircle className="mr-2 h-5 w-5" /> I Have Sent the Email
                     </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
 
               {submissionStep === 'done' && (
-                 <Card className="p-8 shadow-[var(--shadow-elevated)] text-center">
-                  <CardHeader>
-                    <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-                    <CardTitle className="mt-4 text-2xl">Report Submitted Successfully!</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-muted-foreground">
+                <div className="glass-card rounded-3xl p-8 md:p-12 text-center animate-in zoom-in-95 duration-500">
+                  <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600">
+                    <CheckCircle className="h-10 w-10" />
+                  </div>
+                  <h2 className="text-3xl font-bold mb-4">Report Submitted Successfully!</h2>
+                  <div className="space-y-4 max-w-lg mx-auto">
+                    <p className="text-muted-foreground text-lg">
                       Thank you for your contribution to making our roads safer. Your report is now live.
                     </p>
-                    <Button onClick={handleBackToHome} size="lg" className="mt-4">
+                    <Button onClick={handleBackToHome} size="lg" className="mt-6 rounded-full h-12 px-8 text-lg shadow-lg">
                       Report Another Pothole
                     </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )}
             </div>
           </section>
@@ -227,7 +235,7 @@ P.S. If you need any additional information or would like me to provide more det
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-8 bg-muted/30">
+      <footer className="border-t border-white/20 py-8 bg-white/30 backdrop-blur-sm">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
             Pothole Hero - Making Bangalore's roads safer, one report at a time

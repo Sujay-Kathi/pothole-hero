@@ -1,0 +1,119 @@
+Pothole Hero — New User Procedures and Knowledge
+Website: https://potholehero.lovable.app/
+
+Purpose
+--------
+Pothole Hero is a citizen-facing web app to report road potholes (primarily targeted at Bangalore/BBMP) and create visibility so the civic agency(s) can act. Users can report a pothole, view recent reports on a map, and optionally track the status of submitted reports.
+
+NOTE about source material
+--------------------------
+I attempted to fetch the website directly but it appears to be a single-page app whose dynamic content couldn't be fully extracted. The app's public summary identifies itself as "Report Road Potholes. Help make Bangalore's roads safer. Report potholes in your area and we'll notify BBMP directly. Report a Pothole / View Recent Reports." (This is consistent with the site's public metadata.) Please verify any small UI text or labels by visiting the site directly. 
+
+Quick-start (what a new user should do)
+---------------------------------------
+1. Open the website:
+   - Visit: https://potholehero.lovable.app/
+
+2. Landing page — orientation:
+   - Expect a prominent title (Pothole Hero) and a short description of the app’s purpose.
+   - Look for main action buttons such as "Report a Pothole" and "View Recent Reports" or "Map".
+
+3. Report a pothole — step-by-step:
+   a. Click the "Report a Pothole" button.
+   b. Allow location access when the browser prompts (this enables auto geotagging).
+      - If you prefer not to share exact GPS, manually select a point on the map or enter a landmark/address if offered.
+   c. Add at least one clear photo of the pothole:
+      - Take the photo close enough to show the hole’s size and surroundings (landmarks, nearby sign, house number).
+      - Include a wider shot too, if the UI allows multiple images — this helps crews find the location.
+   d. Fill in details:
+      - Description: short notes (e.g., "large pothole near gate of Anmol Clinic, on MG Road, opposite ABC store").
+      - Severity/Size: if there is a dropdown (small/medium/large or numeric).
+      - Road type: if requested (main road, residential street, service lane).
+      - Any hazards: e.g., water filling the pothole, exposed metal, etc.
+   e. Provide contact info (optional):
+      - The app may allow an email or phone for updates. Provide it only if you want status notifications.
+   f. Submit the report:
+      - Press "Submit", "Send", or similar. Wait for an acknowledgement (toast / success screen / tracking id).
+      - Note down the report ID if provided (useful to track or follow up).
+
+4. View recent reports / map:
+   - Click "View Recent Reports" or open the map.
+   - You should see pins or markers representing submitted potholes.
+   - Click markers to open details (photos, description, status, date/time).
+   - Use filters if available (date range, status: Open/In progress/Closed, severity).
+
+5. Track your report:
+   - If the app supports "My Reports" or requires account creation, log in to see updates.
+   - If the app sends email updates, watch your inbox for status changes (work approved, assigned, completed).
+   - If an external civic agency (BBMP) ticket number is created, the report detail may include that reference.
+
+6. Account & Authentication:
+   - Some actions may be available without an account; other features (viewing your submissions) may require creating an account or signing in.
+   - If there is "Sign in with Google" / "Sign in with email", choose one convenient method.
+   - Check "My Reports" after signing in to view your submissions and their status.
+
+7. Good reporting practices (tips for fast resolution)
+   - Use clear photos with a close-up and a contextual wide shot.
+   - Capture nearby landmarks or street signs for easier identification.
+   - Report promptly after seeing the pothole and avoid staging the photo.
+   - Prefer daytime photos — details are clearer.
+   - Provide a concise, factual description (avoid opinions or expletives).
+
+8. Privacy & data handling
+   - The app will likely capture your location and photos to create an actionable ticket.
+   - If you provide contact details they may be used to send updates; check the app's privacy policy or footer for details (if present).
+   - Do not include extremely sensitive personal data in the photo or description.
+
+9. Accessibility & troubleshooting
+   - If the map or location access doesn’t work:
+     - Ensure browser location permissions are enabled for the site.
+     - Try refreshing the page or using another browser (Chrome recommended).
+     - If images fail to upload, check file size limits or try a different connection.
+   - If the site shows an "Edit with lovable.dev" banner (site builder), the app might be a Lovable-built site — try reloading or contacting the site owner.
+
+10. Support and escalation
+    - Look for a "Contact", "Help", "FAQ" or "About" link in the site’s footer or menu.
+    - For unresolved issues or urgent hazards, escalate to local civic channels (BBMP helplines or local ward office) quoting the report ID if available.
+    - Check for links to the official BBMP reporting systems (e.g., Fix My Street / MyStreet / BBMP portals) if you prefer to file directly with the civic body.
+
+11. Share and community features
+    - The app may include social sharing (Twitter, X, WhatsApp) so you can spread awareness.
+    - Respect privacy: if sharing someone’s property or vehicle appears in the photo, consider blurring or taking a different shot.
+
+12. Developer / technical notes (for knowledge base)
+    - Platform: the site appears to be built with Lovable (lovable.dev) tooling and is likely a progressive web app (PWA) or single-page application.
+    - Expected integrations: Google Maps or other map provider for geolocation; image upload; backend to create tickets and optionally forward to BBMP.
+    - Known limitations: single-page apps often require JavaScript to run; if JS is disabled the content might not render.
+
+13. Suggested FAQ entries to include in knowledge base
+    Q: Do I need an account to report a pothole?
+    A: No, many apps allow anonymous reporting, but accounts help you track your reports.
+    Q: What happens after I submit?
+    A: Your report is sent to the app's backend and may be forwarded to BBMP; you may get a ticket ID and status updates.
+    Q: Can I edit or delete a report?
+    A: Typically no — contact support for corrections. Some apps allow updates to your report.
+    Q: How long until the pothole is fixed?
+    A: Timelines vary widely. Report IDs help you follow up with BBMP or ward offices.
+    Q: Who owns the data?
+    A: Check the app’s privacy policy or contact the site owner for details.
+
+14. Suggested fields for the knowledge file (for chatbot ingestion)
+    - site_name: Pothole Hero
+    - site_url: https://potholehero.lovable.app/
+    - purpose: citizen pothole reporting for Bangalore / BBMP
+    - primary_actions: ["Report a Pothole", "View Recent Reports", "Map", "My Reports", "Contact"]
+    - required_user_inputs: ["photo", "location", "description", "optional contact info"]
+    - expected_notifications: ["report_acknowledgement", "status_updates", "bbmp_ticket_reference"]
+    - tips: [see Good reporting practices above]
+    - troubleshooting_steps: [see Accessibility & troubleshooting]
+    - privacy_note: "Location and photos are captured for ticket creation; do not include sensitive data."
+
+15. How to keep this file up-to-date
+    - Periodically visit the site and copy-paste the latest UI text, labels, and any new features.
+    - If the site adds an API or public developer docs, include endpoints and parameter descriptions.
+    - If you want, provide me (the assistant) with the live HTML or screenshots and I can extract exact labels and update this file.
+
+Closing note
+------------
+I created this knowledge file based on the site's public summary and typical flows used by pothole reporting apps. Because the site is a dynamic single-page app, if you want the chatbot to have *exact* UI labels, confirmation messages, or the site's full privacy policy text, paste the live HTML or screenshots here and I will update the TXT file precisely.
+
