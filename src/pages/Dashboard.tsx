@@ -116,7 +116,7 @@ const Dashboard = () => {
       >
         <div className="container mx-auto">
           <div className="glass rounded-full px-3 py-2 md:px-6 md:py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="no-glass-effect flex items-center gap-2 md:gap-3">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
                 <img src="/logo.jpg" alt="Pothole Hero" className="relative h-8 w-8 md:h-10 md:w-10 rounded-full border-2 border-white/50" />

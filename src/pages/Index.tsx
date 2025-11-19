@@ -141,7 +141,7 @@ P.S. If you need any additional information or would like me to provide more det
             <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={handleBackToHome}
-                className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity"
+                className="no-glass-effect flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity"
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
