@@ -8,12 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Report } from "@/types/report";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useScrollHeader } from "@/hooks/use-scroll-header";
 
 const Index = () => {
   const [showForm, setShowForm] = useState(false);
   const [submissionStep, setSubmissionStep] = useState<'form' | 'confirm' | 'done'>('form');
   const [pendingReport, setPendingReport] = useState<Report | null>(null);
   const [totalReports, setTotalReports] = useState(0);
+
+  // Use scroll header with special behavior for report form
+  const isHeaderVisible = useScrollHeader({ hideOnLoad: showForm });
 
   const handleReportSuccess = (reportData: any) => {
     // Generate email content with improved subject line format
@@ -87,11 +91,6 @@ P.S. If you need any additional information or would like me to provide more det
     if (!pendingReport) return;
 
     try {
-      // The report is already in the database from the form component.
-      // This step now confirms it's "live".
-      // If the form didn't insert, you would insert it here.
-      // For now, we just update the UI.
-
       setSubmissionStep('done');
       setTotalReports(prev => prev + 1);
       recentReportsRef.current?.refresh();
@@ -132,10 +131,13 @@ P.S. If you need any additional information or would like me to provide more det
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-zinc-900 dark:via-zinc-900 dark:to-black selection:bg-primary/20">
-      {/* Floating Header */}
-      <header className="fixed top-4 left-0 right-0 z-50 px-2 sm:px-4">
+      {/* Floating Header with Scroll Behavior */}
+      <header
+        className={`fixed top-4 left-0 right-0 z-50 px-2 sm:px-4 transition-transform duration-300 ease-in-out ${isHeaderVisible ? 'translate-y-0' : '-translate-y-24'
+          }`}
+      >
         <div className="container mx-auto">
-          <div className="glass rounded-full px-3 py-2 md:px-6 md:py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="glass rounded-full px-3 py-2 md:px-6 md:py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={handleBackToHome}
