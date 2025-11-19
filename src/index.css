@@ -19,6 +19,7 @@
 
     --primary: 240 5.9% 10%;
     --primary-foreground: 0 0% 98%;
+    --primary-rgb: 24, 24, 27;
 
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -73,6 +74,7 @@
 
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
+    --primary-rgb: 250, 250, 250;
 
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -123,6 +125,29 @@
 
   .leaflet-popup-tip {
     @apply bg-white/30 dark:bg-black/30 !important;
+  }
+
+  /* Global Button Liquid Glass Hover Effects */
+  button:not(.no-glass-effect),
+  .btn,
+  [role="button"] {
+    @apply transition-all duration-300;
+  }
+
+  button:not(.no-glass-effect):hover,
+  .btn:hover,
+  [role="button"]:hover {
+    @apply scale-105;
+    box-shadow: 0 8px 24px rgba(var(--primary-rgb), 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Primary buttons get extra glow */
+  button.glass:hover,
+  button[class*="bg-primary"]:hover,
+  .btn-primary:hover {
+    box-shadow: 0 8px 32px rgba(var(--primary-rgb), 0.3),
+      0 4px 16px rgba(0, 0, 0, 0.15);
   }
 }
 
