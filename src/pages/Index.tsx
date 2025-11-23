@@ -241,6 +241,8 @@ P.S. If you need any additional information or would like me to provide more det
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
            Created By- Sujay Kathi
+          </p>  
+          <p className="text-sm text-muted-foreground">
             Pothole Hero - Making Bangalore's roads safer, one report at a time
           </p>
           <p className="text-xs text-muted-foreground mt-2">
