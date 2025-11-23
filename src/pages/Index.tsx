@@ -240,6 +240,7 @@ P.S. If you need any additional information or would like me to provide more det
       <footer className="border-t border-white/20 py-8 bg-white/30 backdrop-blur-sm">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-muted-foreground">
+           Created By- Sujay Kathi
             Pothole Hero - Making Bangalore's roads safer, one report at a time
           </p>
           <p className="text-xs text-muted-foreground mt-2">
