@@ -7,13 +7,14 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-
+import { SpeedInsights } from "@vercel/speed-insights/next"
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="dark" storageKey="pothole-hero-theme">
       <TooltipProvider>
+        <SpeedInsights />
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -27,6 +28,7 @@ const App = () => (
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
+
 );
 
 export default App;
