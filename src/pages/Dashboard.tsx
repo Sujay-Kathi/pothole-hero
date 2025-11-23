@@ -111,11 +111,11 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-zinc-900 dark:via-zinc-900 dark:to-black selection:bg-primary/20">
       {/* Floating Header with Scroll Behavior */}
       <header
-        className={`fixed top-4 left-0 right-0 z-50 px-2 sm:px-4 transition-transform duration-300 ease-in-out ${isHeaderVisible ? 'translate-y-0' : '-translate-y-24'
+        className={`fixed top-2 sm:top-4 left-0 right-0 z-50 px-2 sm:px-4 transition-transform duration-300 ease-in-out ${isHeaderVisible ? 'translate-y-0' : '-translate-y-24'
           }`}
       >
-        <div className="container mx-auto">
-          <div className="glass rounded-full px-3 py-2 md:px-6 md:py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="container mx-auto p-0 sm:p-0">
+          <div className="glass rounded-3xl sm:rounded-full border-x-0 border-t-0 sm:border px-4 py-3 sm:px-6 sm:py-3 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
             <div className="no-glass-effect flex items-center gap-2 md:gap-3">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
