@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+import LocationSearch, { NominatimResult } from "./LocationSearch";
 
 // Fix for default marker icon in Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -28,6 +29,7 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const currentLocationMarkerRef = useRef<L.CircleMarker | null>(null);
+  const hasUserInteractedRef = useRef(false);
 
   const [markerPosition, setMarkerPosition] = useState<[number, number] | null>(
     latitude && longitude ? [latitude, longitude] as [number, number] : null
@@ -64,21 +66,112 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
     return { address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`, area: "Unknown Area" };
   }, []);
 
-  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+  // Initialize Map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const startCenter = latitude && longitude ? [latitude, longitude] as [number, number] : defaultCenter;
+
+    const map = L.map(mapContainerRef.current).setView(startCenter, 15);
+    mapRef.current = map;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      hasUserInteractedRef.current = true;
+      // Maintain current zoom level when clicking
+      handleMapClick(e.latlng.lat, e.latlng.lng, map.getZoom());
+    });
+
+    return () => {
+      map.off();
+      map.remove();
+      mapRef.current = null;
+      markerRef.current = null;
+      currentLocationMarkerRef.current = null;
+    };
+  }, []); // Run once on mount
+
+  // Handle User Location Updates
+  useEffect(() => {
+    if (!mapRef.current || !userLocation) return;
+
+    // Update or create user location marker
+    if (!currentLocationMarkerRef.current) {
+      currentLocationMarkerRef.current = L.circleMarker(userLocation, {
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.3,
+        radius: 10,
+        weight: 2
+      }).addTo(mapRef.current);
+      currentLocationMarkerRef.current.bindPopup('Your current location');
+    } else {
+      currentLocationMarkerRef.current.setLatLng(userLocation);
+    }
+
+    // Only center on user if they haven't interacted yet and no initial location was provided
+    if (!hasUserInteractedRef.current && !latitude && !longitude) {
+      mapRef.current.setView(userLocation, 15, { animate: true });
+    }
+  }, [userLocation]);
+
+  // Handle Selected Location Marker Updates
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (latitude && longitude) {
+      const pos: [number, number] = [latitude, longitude];
+      setMarkerPosition(pos);
+
+      if (!markerRef.current) {
+        markerRef.current = L.marker(pos).addTo(mapRef.current);
+      } else {
+        markerRef.current.setLatLng(pos);
+      }
+
+      // We don't automatically pan here to avoid fighting with user interaction
+      // The interaction handlers (click/search) handle the panning
+    }
+  }, [latitude, longitude]);
+
+  const handleMapClick = useCallback(async (lat: number, lng: number, zoom: number = 16) => {
+    hasUserInteractedRef.current = true;
     setMarkerPosition([lat, lng]);
 
-    // Create or move marker
     if (mapRef.current) {
-      if (!markerRef.current) {
-        markerRef.current = L.marker([lat, lng]).addTo(mapRef.current);
-      } else {
-        markerRef.current.setLatLng([lat, lng]);
-      }
+      mapRef.current.setView([lat, lng], zoom, { animate: true });
     }
 
     const { address, area } = await reverseGeocode(lat, lng);
     onLocationSelect(lat, lng, address, area);
   }, [onLocationSelect, reverseGeocode]);
+
+  const handleLocationSearch = (result: NominatimResult) => {
+    hasUserInteractedRef.current = true;
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+
+    setMarkerPosition([lat, lon]);
+
+    if (mapRef.current) {
+      // Use current zoom or at least 18, but don't zoom out if user is already zoomed in
+      const targetZoom = Math.max(mapRef.current.getZoom(), 18);
+      mapRef.current.setView([lat, lon], targetZoom, { animate: true });
+    }
+
+    let areaName = "Unknown Area";
+    const parts = result.display_name.split(',').map(p => p.trim());
+    if (parts.length > 2) {
+      areaName = parts[parts.length - 4] || parts[parts.length - 3] || parts[0];
+    } else {
+      areaName = parts[0];
+    }
+
+    onLocationSelect(lat, lon, result.display_name, areaName);
+  };
 
   // Get user's current location
   useEffect(() => {
@@ -107,54 +200,9 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
     }
   }, []);
 
-  useEffect(() => {
-    if (mapRef.current || !mapContainerRef.current) return;
-
-    // Use user location if available, otherwise provided lat/lng, otherwise default
-    const startCenter = userLocation || 
-      (latitude && longitude ? [latitude, longitude] as [number, number] : defaultCenter);
-    
-    const map = L.map(mapContainerRef.current).setView(startCenter, 15);
-    mapRef.current = map;
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    // Show user's current location as a blue circle
-    if (userLocation) {
-      currentLocationMarkerRef.current = L.circleMarker(userLocation, {
-        color: '#3b82f6',
-        fillColor: '#3b82f6',
-        fillOpacity: 0.3,
-        radius: 10,
-        weight: 2
-      }).addTo(map);
-      
-      currentLocationMarkerRef.current.bindPopup('Your current location');
-    }
-
-    // Initialize marker if position provided
-    if (latitude && longitude) {
-      markerRef.current = L.marker([latitude, longitude]).addTo(map);
-    }
-
-    // Map click handler
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      handleMapClick(e.latlng.lat, e.latlng.lng);
-    });
-
-    return () => {
-      map.off();
-      map.remove();
-      mapRef.current = null;
-      markerRef.current = null;
-      currentLocationMarkerRef.current = null;
-    };
-  }, [latitude, longitude, handleMapClick, userLocation]);
-
   const recenterOnUser = useCallback(() => {
     if (mapRef.current && userLocation) {
+      hasUserInteractedRef.current = true; // User explicitly asked for this
       mapRef.current.setView(userLocation, 15, { animate: true });
     }
   }, [userLocation]);
@@ -193,25 +241,23 @@ const LocationPicker = ({ onLocationSelect, latitude, longitude }: LocationPicke
         <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
         <div className="flex-1">
           <p className="text-sm text-muted-foreground">
-            {userLocation ? (
-              <>
-                <strong>Map centered on your location!</strong> Click anywhere to mark the exact pothole location.
-              </>
-            ) : (
-              <>
-                <strong>Click anywhere on the map</strong> to mark the exact pothole location.
-              </>
-            )}
-            {' '}The address will be automatically filled for you.
+            <strong>Search for a location or click on the map</strong> to mark the exact pothole spot. The address will be automatically filled.
           </p>
         </div>
       </div>
 
       <div
         ref={mapContainerRef}
-        className="rounded-lg overflow-hidden border shadow-[var(--shadow-card)]"
+        className="relative rounded-lg overflow-hidden border shadow-[var(--shadow-card)]"
         style={{ height: '400px', width: '100%' }}
-      />
+      >
+        <LocationSearch
+          onLocationSelect={handleLocationSearch}
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-sm px-4"
+          userLocation={userLocation}
+        />
+      </div>
+
 
       {markerPosition && (
         <div className="text-sm bg-muted/30 p-3 rounded-md border">
