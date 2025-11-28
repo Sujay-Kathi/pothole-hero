@@ -1,0 +1,76 @@
+Pothole Hero - Mobile App Specification (React Native / Expo)
+
+1. Project Overview
+   - Goal: Create a native mobile application (iOS & Android) for Pothole Hero using React Native (Expo).
+   - Core Value: Native performance with maximum code reusability (~70%) from the existing React web application.
+   - Synchronization: This app will connect to the SAME Supabase backend as the website, ensuring real-time data consistency across web and mobile.
+
+2. Selected Tech Stack (React Native Ecosystem)
+
+   A. Core Framework
+      - Framework: React Native (via Expo)
+      - Tooling: Expo Router (File-based routing, similar to Next.js/Vite structure)
+      - Language: TypeScript (Shared types with web)
+      - IDE: VS Code
+
+   B. Backend & Database (Shared Backend)
+      *Sharing data with your existing React website.*
+      - Service: Supabase
+      - SDK: `@supabase/supabase-js` (Same SDK as web!)
+      - Auth: Supabase Auth
+      - Database: PostgreSQL (via Supabase)
+      - Storage: Supabase Storage (for images)
+
+   C. Key Libraries & Packages
+      - Styling: `nativewind` (Tailwind CSS for React Native - reuse your web classes)
+      - State Management: `@tanstack/react-query` (Reuse your web queries/mutations)
+      - Maps: `react-native-maps` (Standard for RN)
+      - Location: `expo-location`
+      - Camera/Gallery: `expo-image-picker`
+      - Icons: `lucide-react-native`
+      - UI Components: Build custom components using NativeWind or adapt `react-native-reusables` (shadcn/ui port for RN).
+
+3. Mobile-Specific Features
+   - Offline Mode: Cache reports locally using `@tanstack/react-query` persistence or `AsyncStorage`.
+   - Haptic Feedback: `expo-haptics` for tactile response on interactions.
+   - Deep Linking: Open specific reports directly from shared links.
+   - Native Gestures: Swipe-to-delete, pinch-to-zoom.
+
+4. UI/UX Adaptation for Mobile
+   - Navigation: Tab Bar navigation (Home, Map, Settings) using Expo Router.
+   - Layout: SafeAreaView handling for notches/dynamic islands.
+   - Components: Adapt web components to use `<View>` and `<Text>` instead of `<div>` and `<span>`.
+
+5. Implementation Roadmap
+
+   Phase 1: Setup & Foundation
+   - Initialize Expo project: `npx create-expo-app@latest`
+   - Setup NativeWind (Tailwind CSS).
+   - Copy `types/` folder from web project (Shared interfaces).
+   - Configure Supabase client (Reuse logic).
+
+   Phase 2: Core Reporting Flow
+   - Implement Camera screen (Image Picker).
+   - Implement Map screen (Location selection).
+   - Create Submission Form (Reuse form logic/validation).
+
+   Phase 3: Dashboard & Viewing
+   - Create "Recent Reports" list view.
+   - Implement Report Details screen.
+   - Add "My Reports" filter.
+
+   Phase 4: Polish & Deploy
+   - Add Splash Screen.
+   - Configure App Icons.
+   - Build for EAS (Expo Application Services) or local Android/iOS builds.
+
+6. Database Schema (Supabase - Same as Web)
+   *Reuse the existing 'pothole_reports' table.*
+   - id: uuid
+   - image_url: text
+   - latitude: float8
+   - longitude: float8
+   - address: text
+   - area_name: text
+   - duration: text
+   - status: text
