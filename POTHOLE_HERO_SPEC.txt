@@ -1,0 +1,145 @@
+Pothole Hero - Complete Application Specification
+
+1. Project Overview
+   - Name: Pothole Hero
+   - Goal: Empower citizens (specifically in Bangalore) to report road potholes to civic authorities (BBMP) and visualize the data to track repairs.
+   - Core Workflow: User takes a photo -> Picks location -> Submits Report -> App generates a pre-filled email to authorities -> Report is saved to database -> Dashboard tracks status.
+
+2. Tech Stack
+   - Frontend: React (Vite), TypeScript
+   - Styling: Tailwind CSS, shadcn/ui (component library), Lucide React (icons)
+   - Maps: Leaflet (react-leaflet) with OpenStreetMap tiles
+   - Charts: Recharts
+   - Backend: Supabase (PostgreSQL Database + File Storage)
+   - State Management: React Query (TanStack Query)
+
+3. UI/UX Design
+   The design focuses on a modern, "glassmorphism" aesthetic with smooth animations and a mobile-first approach.
+   - Visual Style:
+     - Theme: Supports Light and Dark modes.
+     - Effects: Heavy use of glass-like transparency (backdrop-blur, semi-transparent backgrounds) for cards and headers.
+     - Gradients: Backgrounds use subtle gradients (e.g., from-gray-100 via-gray-200 to-gray-300 or dark equivalents).
+     - Animations: Elements animate in (zoom-in-95, fade-in) when loading. Buttons have hover scale effects.
+   - Navigation:
+     - Floating Header: A sticky, pill-shaped header that hides/shows on scroll, containing the logo, theme toggle, and "Reports Filed" counter.
+     - Footer: Simple footer with credits and disclaimer.
+
+4. Detailed Features & Functionalities
+
+   A. Public Landing Page (/)
+      1. Hero Section:
+         - Headline: "Report Road Potholes" with gradient text.
+         - Call to Action (CTA): "Report a Pothole" (opens form) and "View Recent Reports" (scrolls down).
+         - Feature Highlights: 3 cards explaining the process: "Take a Photo", "Mark Location", "Submit Report".
+      2. Recent Reports Section:
+         - Displays the 6 most recent reports in a grid.
+         - Card Layout:
+           - Image of the pothole (with hover zoom effect).
+           - Area Name & Address.
+           - "Existed" duration (e.g., "2-4 weeks").
+           - "Reported" time (e.g., "2 days ago").
+         - Empty State: Shows a friendly message if no reports exist.
+
+   B. Reporting Workflow (The Core Feature)
+      1. Step 1: Image Upload:
+         - User uploads a photo of the pothole.
+         - Image is uploaded to Supabase Storage (pothole-images bucket).
+      2. Step 2: Location Picking:
+         - Interactive Map (Leaflet) allows users to pin the exact location.
+         - Auto-fill: Captures Latitude/Longitude. Ideally uses reverse geocoding to auto-fill "Address" and "Area Name" fields.
+      3. Step 3: Details:
+         - Duration Dropdown: How long the pothole has existed (e.g., "1-2 weeks", "More than 6 months").
+         - Description: Optional text area for extra details.
+      4. Step 4: Submission & Email Generation:
+         - Database Save: Saves the report to Supabase with status 'pending'.
+         - Email Client Integration:
+           - Mobile: Opens the native mail app (mailto:).
+           - Desktop: Opens Gmail web interface in a new tab.
+           - Content: Pre-fills Subject and Body with:
+             - Location (Area, Address, GPS).
+             - Duration.
+             - Photo URL.
+             - Polite request text addressed to the civic body (BBMP).
+      5. Step 5: Confirmation:
+         - User confirms they sent the email.
+         - Success screen with "Report Another" button.
+
+   C. Analytics Dashboard (/dashboard)
+      A comprehensive view for admins or the public to track pothole status.
+      1. Tabs:
+         - Overview: Summary stats and recent activity.
+         - Map & Analytics: Deep dive into data.
+         - Management: Tools to update/delete reports.
+      2. Interactive Map:
+         - Shows ALL reports as markers.
+         - Color Coding:
+           - Yellow: Pending
+           - Blue: In Progress
+           - Green: Resolved
+         - Popups: Clicking a marker shows report details.
+      3. Analytics Charts:
+         - Timeline: Line chart showing reports filed over time (Daily/Weekly/Monthly).
+         - Status Distribution: Bar chart (Pending vs Resolved).
+         - Area Hotspots: Bar chart showing which areas have the most potholes.
+         - Resolution Trends: Line chart showing average time to resolve issues.
+      4. Filtering System:
+         - Filter by Area, Status (Pending/Resolved), and Date Range.
+      5. Management Tools:
+         - Bulk Actions: Select multiple reports via checkboxes.
+         - Update Status: Change status of selected reports (e.g., mark as "Resolved").
+         - Delete: Remove invalid reports.
+         - Export: Download selected data as a CSV file.
+
+5. Backend & Database (Supabase)
+
+   A. Database Schema
+      Table Name: pothole_reports
+
+      | Column Name | Data Type     | Constraints                                                      | Description                             |
+      |-------------|---------------|------------------------------------------------------------------|-----------------------------------------|
+      | id          | uuid          | Primary Key, Default: gen_random_uuid()                          | Unique ID for the report                |
+      | created_at  | timestamptz   | Default: now()                                                   | When the report was created             |
+      | updated_at  | timestamptz   | Default: now()                                                   | Last update timestamp                   |
+      | image_url   | text          | Not Null                                                         | Public URL of the uploaded image        |
+      | latitude    | float8        | Not Null                                                         | GPS Latitude                            |
+      | longitude   | float8        | Not Null                                                         | GPS Longitude                           |
+      | address     | text          | Not Null                                                         | Human-readable address                  |
+      | area_name   | text          | Not Null                                                         | Neighborhood/Area name                  |
+      | duration    | text          | Not Null                                                         | How long the pothole has existed        |
+      | description | text          | Nullable                                                         | Optional user comments                  |
+      | status      | text          | Default: 'pending', Check: IN ('pending', 'in-progress', 'resolved') | Current status of the report            |
+      | resolved_at | timestamptz   | Nullable                                                         | Timestamp when status became 'resolved' |
+
+   B. Storage
+      - Bucket Name: pothole-images
+      - Policy: Publicly readable. Authenticated/Anon users can upload.
+
+   C. Database Triggers & Functions
+      - set_resolved_at_trigger: Automatically sets the resolved_at timestamp when the status column is updated to 'resolved'.
+
+   D. Security (RLS - Row Level Security)
+      - Select: Public (Enable read access for everyone).
+      - Insert: Public (Enable anon users to insert reports).
+      - Update/Delete: Public (In this demo version, anyone can update/delete. For a real app, you would restrict this to authenticated Admin users only).
+
+6. Folder Structure Recommendation
+
+   src/
+   ├── components/
+   │   ├── ui/                 # Reusable UI components (Buttons, Inputs, Cards)
+   │   ├── Hero.tsx            # Landing page hero section
+   │   ├── ReportForm.tsx      # Main form (Image upload + Location + Details)
+   │   ├── RecentReports.tsx   # Grid of recent reports
+   │   ├── DashboardMap.tsx    # Leaflet map component
+   │   ├── DashboardAnalytics.tsx # Recharts visualizations
+   │   └── BulkActionsToolbar.tsx # Management tools
+   ├── hooks/
+   │   ├── use-toast.ts        # Toast notification logic
+   │   └── use-scroll-header.ts# Header scroll effect logic
+   ├── pages/
+   │   ├── Index.tsx           # Landing Page
+   │   └── Dashboard.tsx       # Dashboard Page
+   ├── integrations/
+   │   └── supabase/           # Supabase client and types
+   └── types/
+       └── report.ts           # TypeScript interfaces
