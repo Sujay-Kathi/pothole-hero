@@ -1,31 +1,70 @@
-import { StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import * as Location from 'expo-location';
+import { supabase } from '../../lib/supabase';
+import LeafletMap from '../../components/LeafletMap';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+export default function HomeScreen() {
+    const [location, setLocation] = useState<Location.LocationObject | null>(null);
+    const [reports, setReports] = useState<any[]>([]);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-export default function TabOneScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
-  );
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setErrorMsg('Permission to access location was denied');
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            setLocation(location);
+        })();
+
+        fetchReports();
+    }, []);
+
+    const fetchReports = async () => {
+        const { data, error } = await supabase
+            .from('pothole_reports')
+            .select('*');
+        if (error) console.error(error);
+        else setReports(data || []);
+    };
+
+    const markers = reports.map(r => ({
+        id: r.id,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        title: r.area_name,
+        color: r.status === 'resolved' ? 'green' : 'red'
+    }));
+
+    return (
+        <View style={styles.container}>
+            {location ? (
+                <LeafletMap
+                    latitude={location.coords.latitude}
+                    longitude={location.coords.longitude}
+                    markers={markers}
+                />
+            ) : (
+                <View style={styles.loading}>
+                    <Text>{errorMsg || 'Loading map...'}</Text>
+                </View>
+            )}
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    loading: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    }
 });
