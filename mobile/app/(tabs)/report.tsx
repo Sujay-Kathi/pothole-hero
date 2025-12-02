@@ -107,10 +107,10 @@ export default function ReportScreen() {
     };
 
     return (
-        <ScrollView className="flex-1 bg-gray-50 p-4">
-            <Text className="text-2xl font-bold mb-6 text-gray-900">Report Pothole</Text>
+        <ScrollView className="flex-1 bg-gray-900 p-4">
+            <Text className="text-2xl font-bold mb-6 text-white">Report Pothole</Text>
 
-            <TouchableOpacity onPress={pickImage} className="bg-white p-8 rounded-xl border-2 border-dashed border-gray-300 items-center justify-center mb-6 h-64">
+            <TouchableOpacity onPress={pickImage} className="bg-gray-800 p-8 rounded-xl border-2 border-dashed border-gray-700 items-center justify-center mb-6 h-64">
                 {image ? (
                     <Image source={{ uri: image }} className="w-full h-full rounded-lg" resizeMode="cover" />
                 ) : (
@@ -121,21 +121,22 @@ export default function ReportScreen() {
                 )}
             </TouchableOpacity>
 
-            <View className="bg-white p-4 rounded-xl mb-4 shadow-sm">
+            <View className="bg-gray-800 p-4 rounded-xl mb-4 shadow-sm">
                 <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-sm font-medium text-gray-500">Location</Text>
+                    <Text className="text-sm font-medium text-gray-400">Location</Text>
                     <TouchableOpacity onPress={() => setShowMap(true)} className="flex-row items-center">
                         <MapPin size={16} color="#2563eb" />
                         <Text className="text-blue-600 ml-1 text-xs font-bold">Adjust on Map</Text>
                     </TouchableOpacity>
                 </View>
-                <Text className="text-gray-900">{address || 'Fetching location...'}</Text>
+                <Text className="text-gray-200">{address || 'Fetching location...'}</Text>
             </View>
 
-            <View className="bg-white p-4 rounded-xl mb-6 shadow-sm">
+            <View className="bg-gray-800 p-4 rounded-xl mb-6 shadow-sm">
                 <Text className="text-sm font-medium text-gray-500 mb-2">Description</Text>
                 <TextInput
-                    className="text-gray-900 h-24"
+                    className="text-gray-200 h-24"
+                    placeholderTextColor="#9ca3af"
                     multiline
                     placeholder="Describe the pothole..."
                     value={description}
@@ -157,9 +158,9 @@ export default function ReportScreen() {
             </TouchableOpacity>
 
             <Modal visible={showMap} animationType="slide">
-                <View className="flex-1">
-                    <View className="p-4 bg-white pt-12 flex-row justify-between items-center border-b border-gray-200">
-                        <Text className="font-bold text-lg">Pick Location</Text>
+                <View className="flex-1 bg-gray-900">
+                    <View className="p-4 bg-gray-900 pt-12 flex-row justify-between items-center border-b border-gray-800">
+                        <Text className="font-bold text-lg text-white">Pick Location</Text>
                         <TouchableOpacity onPress={() => setShowMap(false)}>
                             <Text className="text-blue-600 font-bold">Done</Text>
                         </TouchableOpacity>
@@ -175,8 +176,8 @@ export default function ReportScreen() {
                             }}
                         />
                     )}
-                    <View className="absolute bottom-10 left-4 right-4 bg-white p-4 rounded-xl shadow-lg">
-                        <Text className="text-center text-gray-600 text-xs">Tap on the map to move the pin</Text>
+                    <View className="absolute bottom-10 left-4 right-4 bg-gray-800 p-4 rounded-xl shadow-lg">
+                        <Text className="text-center text-gray-400 text-xs">Tap on the map to move the pin</Text>
                     </View>
                 </View>
             </Modal>

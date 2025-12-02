@@ -3,7 +3,18 @@ import { Home, PlusCircle, List } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#2563eb' }}>
+    <Tabs screenOptions={{
+      tabBarActiveTintColor: '#60a5fa', // blue-400
+      tabBarInactiveTintColor: '#9ca3af', // gray-400
+      tabBarStyle: {
+        backgroundColor: '#111827', // gray-900
+        borderTopColor: '#1f2937', // gray-800
+      },
+      headerStyle: {
+        backgroundColor: '#111827', // gray-900
+      },
+      headerTintColor: '#f3f4f6', // gray-100
+    }}>
       <Tabs.Screen
         name="index"
         options={{

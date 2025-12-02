@@ -50,7 +50,7 @@ export default function HomeScreen() {
                 />
             ) : (
                 <View style={styles.loading}>
-                    <Text>{errorMsg || 'Loading map...'}</Text>
+                    <Text style={styles.text}>{errorMsg || 'Loading map...'}</Text>
                 </View>
             )}
         </View>
@@ -60,11 +60,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#111827', // gray-900
     },
     loading: {
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        backgroundColor: '#111827',
+    },
+    text: {
+        color: '#9ca3af' // gray-400
     }
 });
