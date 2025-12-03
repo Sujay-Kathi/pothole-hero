@@ -5,6 +5,8 @@ import * as Location from 'expo-location';
 import { supabase } from '../../lib/supabase';
 import { Camera, MapPin } from 'lucide-react-native';
 import LeafletMap from '../../components/LeafletMap';
+import { ScreenWrapper } from '../../components/ScreenWrapper';
+import { LocationSearch } from '../../components/LocationSearch';
 
 export default function ReportScreen() {
     const [image, setImage] = useState<string | null>(null);
@@ -107,35 +109,35 @@ export default function ReportScreen() {
     };
 
     return (
-        <ScrollView className="flex-1 bg-gray-900 p-4">
-            <Text className="text-2xl font-bold mb-6 text-white">Report Pothole</Text>
+        <ScreenWrapper>
+            <Text className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Report Pothole</Text>
 
-            <TouchableOpacity onPress={pickImage} className="bg-gray-800 p-8 rounded-xl border-2 border-dashed border-gray-700 items-center justify-center mb-6 h-64">
+            <TouchableOpacity onPress={pickImage} className="bg-white/50 dark:bg-gray-800/50 p-8 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 items-center justify-center mb-6 h-64">
                 {image ? (
                     <Image source={{ uri: image }} className="w-full h-full rounded-lg" resizeMode="cover" />
                 ) : (
                     <View className="items-center">
                         <Camera size={48} color="#9ca3af" />
-                        <Text className="text-gray-400 mt-2">Tap to take photo</Text>
+                        <Text className="text-gray-500 dark:text-gray-400 mt-2">Tap to take photo</Text>
                     </View>
                 )}
             </TouchableOpacity>
 
-            <View className="bg-gray-800 p-4 rounded-xl mb-4 shadow-sm">
+            <View className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-xl mb-4 shadow-sm border border-gray-200 dark:border-gray-700">
                 <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-sm font-medium text-gray-400">Location</Text>
+                    <Text className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</Text>
                     <TouchableOpacity onPress={() => setShowMap(true)} className="flex-row items-center">
                         <MapPin size={16} color="#2563eb" />
                         <Text className="text-blue-600 ml-1 text-xs font-bold">Adjust on Map</Text>
                     </TouchableOpacity>
                 </View>
-                <Text className="text-gray-200">{address || 'Fetching location...'}</Text>
+                <Text className="text-gray-900 dark:text-gray-200">{address || 'Fetching location...'}</Text>
             </View>
 
-            <View className="bg-gray-800 p-4 rounded-xl mb-6 shadow-sm">
-                <Text className="text-sm font-medium text-gray-500 mb-2">Description</Text>
+            <View className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-xl mb-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</Text>
                 <TextInput
-                    className="text-gray-200 h-24"
+                    className="text-gray-900 dark:text-gray-200 h-24"
                     placeholderTextColor="#9ca3af"
                     multiline
                     placeholder="Describe the pothole..."
@@ -148,7 +150,7 @@ export default function ReportScreen() {
             <TouchableOpacity
                 onPress={submitReport}
                 disabled={loading}
-                className={`p-4 rounded-xl items-center ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
+                className={`p-4 rounded-xl items-center shadow-lg ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
             >
                 {loading ? (
                     <ActivityIndicator color="white" />
@@ -158,29 +160,48 @@ export default function ReportScreen() {
             </TouchableOpacity>
 
             <Modal visible={showMap} animationType="slide">
-                <View className="flex-1 bg-gray-900">
-                    <View className="p-4 bg-gray-900 pt-12 flex-row justify-between items-center border-b border-gray-800">
-                        <Text className="font-bold text-lg text-white">Pick Location</Text>
+                <View className="flex-1 bg-gray-100 dark:bg-gray-900">
+                    <View className="p-4 bg-white dark:bg-gray-900 pt-12 flex-row justify-between items-center border-b border-gray-200 dark:border-gray-800 z-10">
+                        <Text className="font-bold text-lg text-gray-900 dark:text-white">Pick Location</Text>
                         <TouchableOpacity onPress={() => setShowMap(false)}>
                             <Text className="text-blue-600 font-bold">Done</Text>
                         </TouchableOpacity>
                     </View>
-                    {location && (
-                        <LeafletMap
-                            latitude={location.coords.latitude}
-                            longitude={location.coords.longitude}
-                            onMapClick={(lat, lng) => {
-                                setLocation({ ...location, coords: { ...location.coords, latitude: lat, longitude: lng } });
-                                updateAddress(lat, lng);
-                                // Don't close modal immediately, let user confirm
+
+                    <View className="flex-1 relative">
+                        <LocationSearch
+                            currentLocation={location?.coords}
+                            onLocationSelect={(lat, lng, addr) => {
+                                setLocation({
+                                    ...location!,
+                                    coords: {
+                                        ...location!.coords,
+                                        latitude: lat,
+                                        longitude: lng
+                                    }
+                                });
+                                // We don't update address immediately here to let user confirm on map if they want
+                                // But usually search result is precise, so we can update it.
+                                // The original code updates address on map click.
+                                setAddress(addr);
                             }}
                         />
-                    )}
-                    <View className="absolute bottom-10 left-4 right-4 bg-gray-800 p-4 rounded-xl shadow-lg">
-                        <Text className="text-center text-gray-400 text-xs">Tap on the map to move the pin</Text>
+                        {location && (
+                            <LeafletMap
+                                latitude={location.coords.latitude}
+                                longitude={location.coords.longitude}
+                                onMapClick={(lat, lng) => {
+                                    setLocation({ ...location, coords: { ...location.coords, latitude: lat, longitude: lng } });
+                                    updateAddress(lat, lng);
+                                }}
+                            />
+                        )}
+                        <View className="absolute bottom-10 left-4 right-4 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-lg z-0">
+                            <Text className="text-center text-gray-500 dark:text-gray-400 text-xs">Tap on the map to move the pin</Text>
+                        </View>
                     </View>
                 </View>
             </Modal>
-        </ScrollView>
+        </ScreenWrapper>
     );
 }

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import * as Location from 'expo-location';
 import { supabase } from '../../lib/supabase';
 import LeafletMap from '../../components/LeafletMap';
+import { ScreenWrapper } from '../../components/ScreenWrapper';
 
 export default function HomeScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -41,7 +42,7 @@ export default function HomeScreen() {
     }));
 
     return (
-        <View style={styles.container}>
+        <ScreenWrapper scrollable={false}>
             {location ? (
                 <LeafletMap
                     latitude={location.coords.latitude}
@@ -49,26 +50,10 @@ export default function HomeScreen() {
                     markers={markers}
                 />
             ) : (
-                <View style={styles.loading}>
-                    <Text style={styles.text}>{errorMsg || 'Loading map...'}</Text>
+                <View className="flex-1 justify-center items-center">
+                    <Text className="text-gray-500 dark:text-gray-400">{errorMsg || 'Loading map...'}</Text>
                 </View>
             )}
-        </View>
+        </ScreenWrapper>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#111827', // gray-900
-    },
-    loading: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#111827',
-    },
-    text: {
-        color: '#9ca3af' // gray-400
-    }
-});

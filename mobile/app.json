@@ -4,6 +4,12 @@
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "updates": {
+      "url": "https://u.expo.dev/87e7cf85-ffa8-4ea7-90c8-69ec11997a99"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
@@ -59,6 +65,7 @@
       "eas": {
         "projectId": "87e7cf85-ffa8-4ea7-90c8-69ec11997a99"
       }
-    }
+    },
+    "owner": "sujaykathi"
   }
 }

@@ -1,0 +1,37 @@
+⚠️ Critical Next Step: Rebuild the APK
+For the "updates" functionality to work, the native app code needs to know how to fetch them. You must rebuild and reinstall the APK one last time.
+
+Run this command in your terminal to generate the new APK:
+
+
+powershell
+
+
+npx eas build --platform android --profile preview
+
+
+How to Push Future Changes
+Once you have installed the new APK on your phone, you won't need to reinstall it for JavaScript/styling changes. Instead, you can push updates directly to it:
+
+Make your changes in the code.
+Publish the update by running:
+powershell
+
+
+npx eas update --branch preview --message "Description of your changes"
+
+
+(Note: This targets the preview channel we configured in 
+eas.json
+).
+The next time you open the app on your phone (or restart it), it will download the new version and update itself.
+
+Summary of Changes Made
+Installed expo-updates: The library responsible for fetching remote bundles.
+Configured 
+app.json
+: Added the update URL and set the runtime version policy to match your app version (1.0.0).
+Configured 
+eas.json
+: Linked the preview build profile to the preview update channel.
+Would you like me to trigger the build command for you now, or will you run it yourself?
