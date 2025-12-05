@@ -1,0 +1,29 @@
+@keyframes fire-emoji-float {
+    0% {
+        transform: translateY(0) scale(1) rotate(-5deg);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(-20px) scale(1.1) rotate(5deg);
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-40px) scale(1) rotate(-5deg);
+        opacity: 0;
+    }
+}
+
+.animate-fire-emoji {
+    animation-name: fire-emoji-float;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
