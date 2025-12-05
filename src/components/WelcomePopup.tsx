@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -6,40 +6,14 @@ export const WelcomePopup = () => {
     const [isOpen, setIsOpen] = useState(true);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    useEffect(() => {
-        // Initialize audio
-        audioRef.current = new Audio("/amongus.mp3");
-
-        // Attempt to play audio
-        // Note: Browsers might block autoplay without user interaction.
-        // We'll try to play it, but handle errors silently or log them.
-        const playAudio = async () => {
-            try {
-                if (audioRef.current) {
-                    await audioRef.current.play();
-                }
-            } catch (error) {
-                console.log("Autoplay prevented:", error);
-            }
-        };
-
-        playAudio();
-
-        // Cleanup on unmount
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-        };
-    }, []);
-
     const handleClose = () => {
-        setIsOpen(false);
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
+        // Play audio on close button click (user interaction satisfies browser autoplay policy)
+        if (!audioRef.current) {
+            audioRef.current = new Audio("/amongus.mp3");
         }
+        audioRef.current.play();
+
+        setIsOpen(false);
     };
 
     if (!isOpen) return null;
