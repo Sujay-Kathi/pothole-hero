@@ -11,6 +11,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react"
 import { useState, useRef } from "react";
 import { FireOverlay } from "@/components/FireOverlay";
 import { FireButton } from "@/components/FireButton";
+import { WelcomePopup } from "@/components/WelcomePopup";
 import "./fire.css";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => {
           <SpeedInsights />
           <Toaster />
           <Sonner />
+          <WelcomePopup />
           {isFireActive && <FireOverlay />}
           <FireButton onClick={handleFireClick} isActive={isFireActive} />
           <BrowserRouter>
