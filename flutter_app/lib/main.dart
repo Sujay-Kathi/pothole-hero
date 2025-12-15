@@ -11,6 +11,8 @@ import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/admin_login_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -195,6 +197,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = 1),
+      onLongPress: () => _showAdminLogin(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(18),
@@ -227,5 +230,20 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
       ),
     );
+  }
+
+  void _showAdminLogin() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+    );
+
+    if (result == true && mounted) {
+      // Successfully logged in, navigate to admin dashboard
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+      );
+    }
   }
 }

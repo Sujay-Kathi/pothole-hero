@@ -81,4 +81,32 @@ class SupabaseService {
       return 0;
     }
   }
+
+  // Delete a report (Admin only)
+  Future<void> deleteReport(String reportId) async {
+    try {
+      await _client.from('pothole_reports').delete().eq('id', reportId);
+    } catch (e) {
+      throw Exception('Failed to delete report: $e');
+    }
+  }
+
+  // Update report status (Admin only)
+  Future<void> updateReportStatus(String reportId, String status) async {
+    try {
+      Map<String, dynamic> updateData = {
+        'status': status,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // If status is resolved, add resolved_at timestamp
+      if (status == 'resolved') {
+        updateData['resolved_at'] = DateTime.now().toIso8601String();
+      }
+
+      await _client.from('pothole_reports').update(updateData).eq('id', reportId);
+    } catch (e) {
+      throw Exception('Failed to update report status: $e');
+    }
+  }
 }
