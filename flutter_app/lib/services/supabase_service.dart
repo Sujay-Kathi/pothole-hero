@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/pothole_report.dart';
 
@@ -85,8 +86,23 @@ class SupabaseService {
   // Delete a report (Admin only)
   Future<void> deleteReport(String reportId) async {
     try {
-      await _client.from('pothole_reports').delete().eq('id', reportId);
+      debugPrint('🗑️ Attempting to delete report with ID: $reportId');
+      
+      // Try to parse as int first (for integer primary keys)
+      final intId = int.tryParse(reportId);
+      debugPrint('🔢 Parsed intId: $intId');
+      
+      if (intId != null) {
+        final response = await _client.from('pothole_reports').delete().eq('id', intId).select();
+        debugPrint('✅ Delete response: $response');
+      } else {
+        // Fall back to string (for UUID primary keys)
+        final response = await _client.from('pothole_reports').delete().eq('id', reportId).select();
+        debugPrint('✅ Delete response (UUID): $response');
+      }
+      debugPrint('🎉 Delete operation completed');
     } catch (e) {
+      debugPrint('❌ Delete failed: $e');
       throw Exception('Failed to delete report: $e');
     }
   }
@@ -94,18 +110,27 @@ class SupabaseService {
   // Update report status (Admin only)
   Future<void> updateReportStatus(String reportId, String status) async {
     try {
-      Map<String, dynamic> updateData = {
-        'status': status,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      // If status is resolved, add resolved_at timestamp
-      if (status == 'resolved') {
-        updateData['resolved_at'] = DateTime.now().toIso8601String();
+      debugPrint('✏️ Attempting to update report $reportId to status: $status');
+      
+      // Try to parse as int first (for integer primary keys)
+      final intId = int.tryParse(reportId);
+      debugPrint('🔢 Parsed intId: $intId');
+      
+      if (intId != null) {
+        final response = await _client.from('pothole_reports').update({
+          'status': status,
+        }).eq('id', intId).select();
+        debugPrint('✅ Update response: $response');
+      } else {
+        // Fall back to string (for UUID primary keys)
+        final response = await _client.from('pothole_reports').update({
+          'status': status,
+        }).eq('id', reportId).select();
+        debugPrint('✅ Update response (UUID): $response');
       }
-
-      await _client.from('pothole_reports').update(updateData).eq('id', reportId);
+      debugPrint('🎉 Update operation completed');
     } catch (e) {
+      debugPrint('❌ Update failed: $e');
       throw Exception('Failed to update report status: $e');
     }
   }

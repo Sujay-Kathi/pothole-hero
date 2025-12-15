@@ -36,18 +36,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _deleteReport(PotholeReport report) async {
+    // Store reference to cubit before dialog
+    final reportsCubit = context.read<ReportsCubit>();
+    
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Report'),
-        content: Text('Are you sure you want to delete the report at "${report.areaName}"?'),
+        content: Text('Are you sure you want to delete the report at "${report.areaName ?? "Unknown"}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
@@ -58,12 +61,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (confirm == true) {
       try {
         await _supabaseService.deleteReport(report.id);
+        reportsCubit.refreshReports();
         if (mounted) {
-          context.read<ReportsCubit>().refreshReports();
           _showSnackBar('Report deleted successfully');
         }
       } catch (e) {
-        _showSnackBar('Error deleting report: $e', isError: true);
+        if (mounted) {
+          _showSnackBar('Error deleting report: $e', isError: true);
+        }
       }
     }
   }
@@ -71,20 +76,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _editReportStatus(PotholeReport report) async {
     String selectedStatus = report.status;
     
+    // Store reference to cubit before dialog
+    final reportsCubit = context.read<ReportsCubit>();
+    
     await showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (dialogContext, setDialogState) {
             return AlertDialog(
               title: const Text('Edit Report Status'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Area: ${report.areaName}'),
+                  Text('Area: ${report.areaName ?? "Unknown"}'),
                   const SizedBox(height: 8),
-                  Text('Address: ${report.address}', style: const TextStyle(fontSize: 12)),
+                  Text('Address: ${report.address ?? "N/A"}', style: const TextStyle(fontSize: 12)),
                   const SizedBox(height: 16),
                   const Text('Status:', style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
@@ -120,20 +128,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                     try {
                       await _supabaseService.updateReportStatus(report.id, selectedStatus);
+                      reportsCubit.refreshReports();
                       if (mounted) {
-                        context.read<ReportsCubit>().refreshReports();
                         _showSnackBar('Status updated to $selectedStatus');
                       }
                     } catch (e) {
-                      _showSnackBar('Error updating status: $e', isError: true);
+                      if (mounted) {
+                        _showSnackBar('Error updating status: $e', isError: true);
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF667eea)),
@@ -313,7 +323,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              report.areaName,
+                              report.areaName ?? 'Unknown Area',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -347,7 +357,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              report.address,
+                              report.address ?? 'No address',
                               style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -363,7 +373,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Icon(Icons.timer_rounded, size: 14, color: Colors.grey.shade500),
                           const SizedBox(width: 4),
                           Text(
-                            report.duration,
+                            report.duration ?? 'N/A',
                             style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                           ),
                           const Spacer(),

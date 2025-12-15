@@ -18,7 +18,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   // Admin credentials (in production, these should be stored securely)
   static const String _adminUsername = 'admin';
-  static const String _adminPassword = 'maka bhosda agg';
+  static const String _adminPassword = 'maka bhosda aag';
 
   void _attemptLogin() {
     setState(() {

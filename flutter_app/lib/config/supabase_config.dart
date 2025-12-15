@@ -1,6 +1,6 @@
 class SupabaseConfig {
-  static const String supabaseUrl = 'https://kvfkgnoemsuopfrdylzo.supabase.co';
+  static const String supabaseUrl = 'https://ozvchluhtiaxvnczvhjp.supabase.co';
   static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2Zmtnbm9lbXN1b3BmcmR5bHpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU0ODUsImV4cCI6MjA3Nzc2MTQ4NX0.RGuPzOL7pDn0hHjdUh-s-IuTuI8uHO3dqrInNBWBkm4';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dmNobHVodGlheHZuY3p2aGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODkxODEsImV4cCI6MjA3NDk2NTE4MX0.cygjb2-R2wgTpEs__ooJy4JSxgQ5dF6TKtvOuOd_2jQ';
   static const String storageBucket = 'pothole-images';
 }

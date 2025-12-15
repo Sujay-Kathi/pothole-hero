@@ -177,11 +177,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     children: [
                       TileLayer(
+                        // Use OpenStreetMap tiles with full labels, building names, and area details
                         urlTemplate: isDarkMode
                             ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                            : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                            : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         subdomains: const ['a', 'b', 'c'],
-                        userAgentPackageName: 'com.potholehero.app',
+                        userAgentPackageName: 'com.sujaykathi.pothole_hero',
+                        maxZoom: 19,
                       ),
                       MarkerLayer(
                         markers: [

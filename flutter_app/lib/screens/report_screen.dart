@@ -93,82 +93,135 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Future<void> _updateAddress(double lat, double lng) async {
     try {
+      // Use Nominatim (OpenStreetMap) reverse geocoding for better address details
+      final response = await http.get(Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&addressdetails=1&zoom=18',
+      ), headers: {
+        'User-Agent': 'PotholeHero/1.0',
+        'Accept-Language': 'en',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Get the full display name (complete address)
+        String displayName = data['display_name'] ?? '';
+        
+        // Also extract address components for the area name
+        final address = data['address'] as Map<String, dynamic>?;
+        
+        String areaName = '';
+        if (address != null) {
+          // Try to get a good area name
+          areaName = address['neighbourhood'] ?? 
+                     address['suburb'] ?? 
+                     address['quarter'] ??
+                     address['city_district'] ??
+                     address['locality'] ??
+                     address['town'] ??
+                     address['city'] ?? 
+                     '';
+          
+          // Build a more structured address if available
+          List<String> addressParts = [];
+          
+          // Building/place name
+          if (address['building'] != null) addressParts.add(address['building']);
+          if (address['amenity'] != null) addressParts.add(address['amenity']);
+          if (address['shop'] != null) addressParts.add(address['shop']);
+          
+          // House number and road
+          if (address['house_number'] != null) addressParts.add(address['house_number']);
+          if (address['road'] != null) addressParts.add(address['road']);
+          
+          // Area/Neighborhood
+          if (address['neighbourhood'] != null) addressParts.add(address['neighbourhood']);
+          if (address['suburb'] != null && address['suburb'] != address['neighbourhood']) {
+            addressParts.add(address['suburb']);
+          }
+          
+          // City district
+          if (address['city_district'] != null) addressParts.add(address['city_district']);
+          
+          // City
+          if (address['city'] != null) addressParts.add(address['city']);
+          if (address['town'] != null && address['town'] != address['city']) {
+            addressParts.add(address['town']);
+          }
+          
+          // State and postal code
+          if (address['state'] != null) addressParts.add(address['state']);
+          if (address['postcode'] != null) addressParts.add(address['postcode']);
+          
+          // Remove duplicates
+          List<String> uniqueParts = [];
+          for (var part in addressParts) {
+            if (part.isNotEmpty && !uniqueParts.contains(part)) {
+              uniqueParts.add(part);
+            }
+          }
+          
+          if (uniqueParts.isNotEmpty) {
+            displayName = uniqueParts.join(', ');
+          }
+        }
+        
+        debugPrint('📍 Nominatim address: $displayName');
+        debugPrint('📍 Area: $areaName');
+        
+        setState(() {
+          _addressController.text = displayName.isNotEmpty ? displayName : 'Address not found';
+          _areaNameController.text = areaName.isNotEmpty ? areaName : 'Unknown Area';
+        });
+      } else {
+        // Fallback to geocoding package if Nominatim fails
+        debugPrint('Nominatim failed, falling back to geocoding package');
+        await _fallbackUpdateAddress(lat, lng);
+      }
+    } catch (e) {
+      debugPrint('Nominatim error: $e, falling back to geocoding package');
+      await _fallbackUpdateAddress(lat, lng);
+    }
+  }
+
+  // Fallback method using geocoding package
+  Future<void> _fallbackUpdateAddress(double lat, double lng) async {
+    try {
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         
-        // Build a comprehensive address from all available fields
         List<String> addressParts = [];
-        
-        // Add name if available and different from street
-        if (place.name != null && place.name!.isNotEmpty && place.name != place.street) {
-          addressParts.add(place.name!);
-        }
-        
-        // Add street number + street name (thoroughfare)
-        if (place.subThoroughfare != null && place.subThoroughfare!.isNotEmpty) {
-          addressParts.add(place.subThoroughfare!);
-        }
-        if (place.thoroughfare != null && place.thoroughfare!.isNotEmpty) {
-          addressParts.add(place.thoroughfare!);
-        } else if (place.street != null && place.street!.isNotEmpty) {
+        if (place.name != null && place.name!.isNotEmpty) addressParts.add(place.name!);
+        if (place.street != null && place.street!.isNotEmpty && place.street != place.name) {
           addressParts.add(place.street!);
         }
-        
-        // Add sub-locality (neighborhood/area)
         if (place.subLocality != null && place.subLocality!.isNotEmpty) {
           addressParts.add(place.subLocality!);
         }
-        
-        // Add locality (city)
         if (place.locality != null && place.locality!.isNotEmpty) {
           addressParts.add(place.locality!);
         }
-        
-        // Add sub-administrative area (district)
-        if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) {
-          addressParts.add(place.subAdministrativeArea!);
-        }
-        
-        // Add administrative area (state)
         if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
           addressParts.add(place.administrativeArea!);
         }
-        
-        // Add postal code
         if (place.postalCode != null && place.postalCode!.isNotEmpty) {
           addressParts.add(place.postalCode!);
         }
         
-        // Remove duplicates while preserving order
-        List<String> uniqueParts = [];
-        for (var part in addressParts) {
-          if (!uniqueParts.contains(part)) {
-            uniqueParts.add(part);
-          }
-        }
-        
-        final fullAddress = uniqueParts.join(', ');
-        
-        // Determine area name (prefer subLocality, then locality)
-        String areaName = place.subLocality ?? place.locality ?? place.subAdministrativeArea ?? '';
-        
-        debugPrint('Geocoding result: $fullAddress');
-        debugPrint('Placemark details: name=${place.name}, street=${place.street}, thoroughfare=${place.thoroughfare}, subLocality=${place.subLocality}, locality=${place.locality}');
+        final fullAddress = addressParts.join(', ');
+        String areaName = place.subLocality ?? place.locality ?? '';
         
         setState(() {
           _addressController.text = fullAddress.isNotEmpty ? fullAddress : 'Address not found';
-          _areaNameController.text = areaName;
-        });
-      } else {
-        setState(() {
-          _addressController.text = 'No address found for this location';
+          _areaNameController.text = areaName.isNotEmpty ? areaName : 'Unknown Area';
         });
       }
     } catch (e) {
-      debugPrint('Geocoding error: $e');
+      debugPrint('Fallback geocoding error: $e');
       setState(() {
         _addressController.text = 'Address not available';
+        _areaNameController.text = 'Unknown Area';
       });
     }
   }
@@ -448,21 +501,24 @@ class _ReportScreenState extends State<ReportScreen> {
         context.read<ReportsCubit>().refreshReports();
         _showSnackBar('Report submitted successfully! 🎉');
         
-        // Reset form
+        // Reset form - stay on the same screen (it's part of bottom navigation)
         setState(() {
           _image = null;
           _descriptionController.clear();
           _areaNameController.clear();
+          _addressController.text = 'Fetching location...';
           _duration = null;
+          _isLoading = false;
         });
-
-        // Navigate to dashboard
-        Navigator.pop(context); // Alternatively, you might want to switch tabs if using a TabController
+        
+        // Re-fetch current location for next report
+        _getCurrentLocation();
       }
     } catch (e) {
-       if (mounted) _showSnackBar('Error saving report: $e', isError: true);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+       if (mounted) {
+         _showSnackBar('Error saving report: $e', isError: true);
+         setState(() => _isLoading = false);
+       }
     }
   }
 
@@ -1110,10 +1166,13 @@ A Concerned Citizen of Bangalore
             ),
             children: [
               TileLayer(
+                // Use OpenStreetMap tiles with full labels, building names, and area details
                 urlTemplate: isDarkMode
                     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c'],
+                userAgentPackageName: 'com.sujaykathi.pothole_hero',
+                maxZoom: 19,
               ),
               if (_location != null)
                 MarkerLayer(

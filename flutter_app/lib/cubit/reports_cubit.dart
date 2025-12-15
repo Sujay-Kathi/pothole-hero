@@ -18,11 +18,16 @@ class ReportsLoading extends ReportsState {}
 class ReportsLoaded extends ReportsState {
   final List<PotholeReport> reports;
   final int totalCount;
+  final DateTime lastUpdated; // Added to force state change detection
 
-  const ReportsLoaded({required this.reports, required this.totalCount});
+  ReportsLoaded({
+    required this.reports,
+    required this.totalCount,
+    DateTime? lastUpdated,
+  }) : lastUpdated = lastUpdated ?? DateTime.now();
 
   @override
-  List<Object?> get props => [reports, totalCount];
+  List<Object?> get props => [reports, totalCount, lastUpdated];
 }
 
 class ReportsError extends ReportsState {
@@ -52,12 +57,18 @@ class ReportsCubit extends Cubit<ReportsState> {
   }
 
   Future<void> refreshReports() async {
+    // Don't show loading state for refresh to keep current list visible
     try {
       final reports = await _supabaseService.fetchReports();
       final count = await _supabaseService.getReportCount();
-      emit(ReportsLoaded(reports: reports, totalCount: count));
+      emit(ReportsLoaded(
+        reports: reports,
+        totalCount: count,
+        lastUpdated: DateTime.now(), // Force new state
+      ));
     } catch (e) {
       emit(ReportsError(e.toString()));
     }
   }
 }
+
