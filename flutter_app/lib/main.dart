@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'theme/app_theme.dart';
 import 'cubit/theme_cubit.dart';
 import 'cubit/reports_cubit.dart';
 import 'services/supabase_service.dart';
+import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -13,7 +15,6 @@ import 'screens/dashboard_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
@@ -40,11 +41,36 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeState.themeMode,
-            home: const MainNavigation(),
+            home: const AppWrapper(),
           );
         },
       ),
     );
+  }
+}
+
+class AppWrapper extends StatefulWidget {
+  const AppWrapper({super.key});
+
+  @override
+  State<AppWrapper> createState() => _AppWrapperState();
+}
+
+class _AppWrapperState extends State<AppWrapper> {
+  bool _showSplash = true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showSplash) {
+      return SplashScreen(
+        onComplete: () {
+          setState(() {
+            _showSplash = false;
+          });
+        },
+      );
+    }
+    return const MainNavigation();
   }
 }
 
@@ -69,41 +95,46 @@ class _MainNavigationState extends State<MainNavigation> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDarkMode ? AppTheme.darkSurface : Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: (isDarkMode ? const Color(0xFF1a1a2e) : Colors.white).withOpacity(0.85),
+              border: Border(
+                top: BorderSide(
+                  color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1),
+                ),
+              ),
             ),
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  icon: Icons.home,
-                  label: 'Home',
-                  index: 0,
-                  isDarkMode: isDarkMode,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(
+                      icon: Icons.map_outlined,
+                      activeIcon: Icons.map_rounded,
+                      label: 'Map',
+                      index: 0,
+                      isDarkMode: isDarkMode,
+                    ),
+                    _buildCenterNavItem(isDarkMode),
+                    _buildNavItem(
+                      icon: Icons.dashboard_outlined,
+                      activeIcon: Icons.dashboard_rounded,
+                      label: 'Reports',
+                      index: 2,
+                      isDarkMode: isDarkMode,
+                    ),
+                  ],
                 ),
-                _buildNavItem(
-                  icon: Icons.add_circle,
-                  label: 'Report',
-                  index: 1,
-                  isDarkMode: isDarkMode,
-                ),
-                _buildNavItem(
-                  icon: Icons.list,
-                  label: 'Dashboard',
-                  index: 2,
-                  isDarkMode: isDarkMode,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -113,42 +144,86 @@ class _MainNavigationState extends State<MainNavigation> {
 
   Widget _buildNavItem({
     required IconData icon,
+    required IconData activeIcon,
     required String label,
     required int index,
     required bool isDarkMode,
   }) {
     final isSelected = _currentIndex == index;
-    final color = isSelected
-        ? (isDarkMode ? AppTheme.primaryBlueDark : AppTheme.primaryBlue)
-        : (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600);
 
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDarkMode
-                  ? AppTheme.primaryBlueDark.withOpacity(0.1)
-                  : AppTheme.primaryBlue.withOpacity(0.1))
+              ? const Color(0xFF667eea).withOpacity(0.15)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(
+              isSelected ? activeIcon : icon,
+              size: 26,
+              color: isSelected
+                  ? const Color(0xFF667eea)
+                  : (isDarkMode ? Colors.grey.shade500 : Colors.grey.shade600),
+            ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF667eea)
+                    : (isDarkMode ? Colors.grey.shade500 : Colors.grey.shade600),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterNavItem(bool isDarkMode) {
+    final isSelected = _currentIndex == 1;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = 1),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                )
+              : null,
+          color: isSelected ? null : (isDarkMode ? const Color(0xFF2D3748) : const Color(0xFFE2E8F0)),
+          shape: BoxShape.circle,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF667eea).withOpacity(0.5),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : [],
+        ),
+        child: Icon(
+          Icons.add_rounded,
+          size: 28,
+          color: isSelected
+              ? Colors.white
+              : (isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600),
         ),
       ),
     );

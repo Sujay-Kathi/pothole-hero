@@ -41,7 +41,7 @@ class AppTheme {
       ),
       iconTheme: const IconThemeData(color: Colors.black87),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: lightCard.withOpacity(0.5),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -99,7 +99,7 @@ class AppTheme {
       ),
       iconTheme: const IconThemeData(color: Colors.white),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: darkCard.withOpacity(0.5),
       elevation: 0,
       shape: RoundedRectangleBorder(

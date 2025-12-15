@@ -16,7 +16,7 @@ class ThemeState extends Equatable {
 
 // Cubit
 class ThemeCubit extends Cubit<ThemeState> {
-  ThemeCubit() : super(const ThemeState(themeMode: ThemeMode.dark));
+  ThemeCubit() : super(const ThemeState(themeMode: ThemeMode.light));
 
   void toggleTheme() {
     final newMode =

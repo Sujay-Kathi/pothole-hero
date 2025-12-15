@@ -50,6 +50,7 @@ class SupabaseService {
     required double longitude,
     required String address,
     required String areaName,
+    required String duration,
     String? description,
   }) async {
     try {
@@ -60,7 +61,7 @@ class SupabaseService {
         'address': address,
         'area_name': areaName,
         'description': description,
-        'duration': '1-2 weeks',
+        'duration': duration,
         'status': 'pending',
       });
     } catch (e) {
