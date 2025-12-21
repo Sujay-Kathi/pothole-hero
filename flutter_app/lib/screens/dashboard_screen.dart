@@ -6,6 +6,9 @@ import '../cubit/reports_cubit.dart';
 import '../cubit/theme_cubit.dart';
 import '../models/pothole_report.dart';
 import '../theme/app_theme.dart';
+import '../services/share_service.dart';
+import '../services/community_service.dart';
+import '../services/device_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,6 +18,13 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final ShareService _shareService = ShareService();
+  final CommunityService _communityService = CommunityService();
+  final DeviceService _deviceService = DeviceService();
+  
+  // Track which reports the user has upvoted (for UI updates)
+  final Set<String> _upvotedReports = {};
+
   @override
   void initState() {
     super.initState();
@@ -364,6 +374,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ],
                           ),
                         ),
+                        
+                        // Action buttons row
+                        const SizedBox(height: 12),
+                        _buildActionRow(report, isDarkMode),
                       ],
                     ),
                   ),
@@ -372,6 +386,100 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionRow(PotholeReport report, bool isDarkMode) {
+    final isUpvoted = _upvotedReports.contains(report.id);
+    
+    return Row(
+      children: [
+        // Upvote button
+        _buildActionButton(
+          icon: isUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
+          label: '${report.upvoteCount}',
+          color: isUpvoted ? const Color(0xFF667eea) : Colors.grey.shade500,
+          onTap: () => _handleUpvote(report),
+        ),
+        const SizedBox(width: 16),
+        
+        // Comment button
+        _buildActionButton(
+          icon: Icons.chat_bubble_outline_rounded,
+          label: '${report.commentCount}',
+          color: Colors.grey.shade500,
+          onTap: () => _showCommentsSheet(report, isDarkMode),
+        ),
+        const Spacer(),
+        
+        // Share button
+        _buildActionButton(
+          icon: Icons.share_rounded,
+          label: 'Share',
+          color: Colors.grey.shade500,
+          onTap: () => _handleShare(report),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleUpvote(PotholeReport report) async {
+    final wasUpvoted = _upvotedReports.contains(report.id);
+    
+    // Optimistic update
+    setState(() {
+      if (wasUpvoted) {
+        _upvotedReports.remove(report.id);
+      } else {
+        _upvotedReports.add(report.id);
+      }
+    });
+    
+    // Send to server
+    await _communityService.toggleUpvote(report.id);
+    
+    // Refresh to get updated counts
+    if (mounted) {
+      context.read<ReportsCubit>().refreshReports();
+    }
+  }
+
+  Future<void> _handleShare(PotholeReport report) async {
+    await _shareService.shareReport(report);
+    await _communityService.incrementShareCount(report.id);
+  }
+
+  void _showCommentsSheet(PotholeReport report, bool isDarkMode) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _CommentsSheet(
+        report: report,
+        isDarkMode: isDarkMode,
+        communityService: _communityService,
+        onCommentAdded: () {
+          this.context.read<ReportsCubit>().refreshReports();
+        },
       ),
     );
   }
@@ -509,5 +617,294 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _formatDate(DateTime date) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+}
+
+// Comments Bottom Sheet Widget
+class _CommentsSheet extends StatefulWidget {
+  final PotholeReport report;
+  final bool isDarkMode;
+  final CommunityService communityService;
+  final VoidCallback onCommentAdded;
+
+  const _CommentsSheet({
+    required this.report,
+    required this.isDarkMode,
+    required this.communityService,
+    required this.onCommentAdded,
+  });
+
+  @override
+  State<_CommentsSheet> createState() => _CommentsSheetState();
+}
+
+class _CommentsSheetState extends State<_CommentsSheet> {
+  final TextEditingController _commentController = TextEditingController();
+  List<Map<String, dynamic>> _comments = [];
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComments();
+  }
+
+  Future<void> _loadComments() async {
+    final comments = await widget.communityService.getComments(widget.report.id);
+    if (mounted) {
+      setState(() {
+        _comments = comments;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _submitComment() async {
+    if (_commentController.text.trim().isEmpty) return;
+    
+    setState(() => _isSubmitting = true);
+    
+    final success = await widget.communityService.addComment(
+      widget.report.id,
+      _commentController.text,
+    );
+    
+    if (success && mounted) {
+      _commentController.clear();
+      widget.onCommentAdded();
+      await _loadComments();
+    }
+    
+    if (mounted) setState(() => _isSubmitting = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: widget.isDarkMode ? const Color(0xFF1a1a2e) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  'Comments',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF667eea).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_comments.length}',
+                    style: const TextStyle(color: Color(0xFF667eea), fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(height: 1),
+          
+          // Comments list
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _comments.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No comments yet',
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Be the first to comment!',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _comments.length,
+                        itemBuilder: (context, index) {
+                          final comment = _comments[index];
+                          return _buildCommentItem(comment);
+                        },
+                      ),
+          ),
+          
+          // Comment input
+          Container(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+            ),
+            decoration: BoxDecoration(
+              color: widget.isDarkMode ? const Color(0xFF252542) : Colors.grey.shade100,
+              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _commentController,
+                    decoration: InputDecoration(
+                      hintText: 'Add a comment...',
+                      hintStyle: TextStyle(color: Colors.grey.shade500),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: widget.isDarkMode ? const Color(0xFF1a1a2e) : Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black87),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _isSubmitting ? null : _submitComment,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentItem(Map<String, dynamic> comment) {
+    final createdAt = DateTime.parse(comment['created_at']);
+    final timeAgo = _getTimeAgo(createdAt);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: widget.isDarkMode ? const Color(0xFF252542) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(Icons.person, size: 16, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                comment['device_users']?['nickname'] ?? 'Anonymous',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: widget.isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                timeAgo,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            comment['content'] ?? '',
+            style: TextStyle(
+              color: widget.isDarkMode ? Colors.white70 : Colors.black87,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getTimeAgo(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 7) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
   }
 }

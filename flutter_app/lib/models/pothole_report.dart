@@ -11,6 +11,13 @@ class PotholeReport extends Equatable {
   final String? duration;
   final String status;
   final DateTime createdAt;
+  
+  // New gamification/community fields
+  final String? deviceId;
+  final String severity; // 'low', 'medium', 'high', 'critical'
+  final int upvoteCount;
+  final int commentCount;
+  final int shareCount;
 
   const PotholeReport({
     required this.id,
@@ -23,6 +30,11 @@ class PotholeReport extends Equatable {
     this.duration,
     required this.status,
     required this.createdAt,
+    this.deviceId,
+    this.severity = 'medium',
+    this.upvoteCount = 0,
+    this.commentCount = 0,
+    this.shareCount = 0,
   });
 
   factory PotholeReport.fromJson(Map<String, dynamic> json) {
@@ -37,6 +49,11 @@ class PotholeReport extends Equatable {
       duration: json['duration'],
       status: json['status'] ?? 'pending',
       createdAt: DateTime.parse(json['created_at']),
+      deviceId: json['device_id'],
+      severity: json['severity'] ?? 'medium',
+      upvoteCount: json['upvote_count'] ?? 0,
+      commentCount: json['comment_count'] ?? 0,
+      shareCount: json['share_count'] ?? 0,
     );
   }
 
@@ -50,9 +67,17 @@ class PotholeReport extends Equatable {
       'description': description,
       'duration': duration,
       'status': status,
+      'device_id': deviceId,
+      'severity': severity,
     };
   }
 
+  // Check if user has upvoted this report
+  bool isOwnReport(String? currentDeviceId) {
+    return deviceId != null && deviceId == currentDeviceId;
+  }
+
   @override
-  List<Object?> get props => [id, imageUrl, latitude, longitude, status];
+  List<Object?> get props => [id, imageUrl, latitude, longitude, status, upvoteCount];
 }
+

@@ -53,6 +53,8 @@ class SupabaseService {
     required String areaName,
     required String duration,
     String? description,
+    String? deviceId,
+    String severity = 'medium',
   }) async {
     try {
       await _client.from('pothole_reports').insert({
@@ -64,6 +66,8 @@ class SupabaseService {
         'description': description,
         'duration': duration,
         'status': 'pending',
+        'device_id': deviceId,
+        'severity': severity,
       });
     } catch (e) {
       throw Exception('Failed to submit report: $e');

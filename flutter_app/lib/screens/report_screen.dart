@@ -11,9 +11,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../cubit/reports_cubit.dart';
 import '../cubit/theme_cubit.dart';
 import '../services/supabase_service.dart';
+import '../services/device_service.dart';
+import '../services/ai_severity_service.dart';
 import '../theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'in_app_camera_screen.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -40,17 +43,22 @@ class _ReportScreenState extends State<ReportScreen> {
     'More than 6 months',
   ];
   bool _isLoading = false;
-  bool _showMap = false;
   
   // Search state
   final TextEditingController _searchController = TextEditingController();
   List<dynamic> _searchResults = [];
   bool _isSearching = false;
   bool _showSearchResults = false;
+  
+  // AI Severity Detection
+  String _detectedSeverity = 'medium';
+  bool _isAnalyzingImage = false;
 
   final MapController _mapController = MapController();
   final ImagePicker _picker = ImagePicker();
   final SupabaseService _supabaseService = SupabaseService();
+  final DeviceService _deviceService = DeviceService();
+  final AISeverityService _aiService = AISeverityService();
 
   @override
   void initState() {
@@ -92,6 +100,7 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _updateAddress(double lat, double lng) async {
+    debugPrint('📍 _updateAddress called with lat: $lat, lng: $lng');
     try {
       // Use Nominatim (OpenStreetMap) reverse geocoding for better address details
       final response = await http.get(Uri.parse(
@@ -229,6 +238,8 @@ class _ReportScreenState extends State<ReportScreen> {
   // --- Search Functionality ---
 
   Future<void> _searchLocation(String query) async {
+    debugPrint('🔍 Search called with query: "$query"');
+    
     if (query.length < 3) {
       setState(() {
         _searchResults = [];
@@ -240,40 +251,41 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() => _isSearching = true);
 
     try {
-      // Restrict search to Bengaluru bbox roughly
-      const minLon = 77.3;
-      const minLat = 12.8;
-      const maxLon = 77.9;
-      const maxLat = 13.3;
-
-      final lat = _location?.latitude ?? 12.9716;
-      final lon = _location?.longitude ?? 77.5946;
-
-      final response = await http.get(Uri.parse(
-        'https://photon.komoot.io/api/?q=${Uri.encodeComponent(query)}&lat=$lat&lon=$lon&bbox=$minLon,$minLat,$maxLon,$maxLat&limit=8&lang=en',
-      ));
+      // Use Nominatim search API (same as OpenStreetMap)
+      // Restricted to Bengaluru bounding box
+      final url = 'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=8&viewbox=77.3,13.3,77.9,12.8&bounded=1';
+      debugPrint('🌐 Fetching: $url');
+      
+      final response = await http.get(Uri.parse(url), headers: {
+        'User-Agent': 'PotholeHero/1.0',
+        'Accept-Language': 'en',
+      });
+      debugPrint('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final features = data['features'] as List;
+        final data = json.decode(response.body) as List;
+        debugPrint('📍 Found ${data.length} results');
 
         setState(() {
-          _searchResults = features.map((f) {
-            final props = f['properties'] as Map<String, dynamic>;
-            final coords = f['geometry']['coordinates'] as List;
+          _searchResults = data.map((item) {
+            final address = item['address'] as Map<String, dynamic>?;
             return {
-              'name': props['name'] ?? 'Unknown',
-              'city': props['city'] ?? props['county'] ?? '',
-              'state': props['state'] ?? '',
-              'lat': coords[1],
-              'lon': coords[0],
+              'name': item['display_name']?.split(',')[0] ?? item['name'] ?? 'Unknown',
+              'city': address?['city'] ?? address?['town'] ?? address?['suburb'] ?? '',
+              'state': address?['state'] ?? '',
+              'lat': double.parse(item['lat'].toString()),
+              'lon': double.parse(item['lon'].toString()),
+              'display_name': item['display_name'] ?? '',
             };
           }).toList();
-          _showSearchResults = true;
+          _showSearchResults = _searchResults.isNotEmpty;
+          debugPrint('✅ _showSearchResults = $_showSearchResults, results: ${_searchResults.length}');
         });
+      } else {
+        debugPrint('❌ API returned status: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Search error: $e');
+      debugPrint('❌ Search error: $e');
     } finally {
       setState(() => _isSearching = false);
     }
@@ -341,7 +353,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     _buildPickerOption(
                       icon: Icons.camera_alt_rounded,
                       label: 'Camera',
-                      onTap: () => _captureImage(ImageSource.camera),
+                      onTap: () => _openInAppCamera(),
                       isDarkMode: isDarkMode,
                     ),
                     _buildPickerOption(
@@ -401,18 +413,131 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  Future<void> _openInAppCamera() async {
+    Navigator.pop(context); // Close the bottom sheet
+    
+    final File? capturedImage = await Navigator.push<File>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InAppCameraScreen(),
+      ),
+    );
+    
+    if (capturedImage != null && mounted) {
+      setState(() {
+        _image = capturedImage;
+        _isAnalyzingImage = true;
+      });
+
+      // Analyze image for severity using AI
+      try {
+        final result = await _aiService.analyzeSeverity(capturedImage);
+        if (mounted) {
+          setState(() {
+            _detectedSeverity = result.severity;
+            _isAnalyzingImage = false;
+          });
+          
+          // Show severity detection result
+          _showSeverityResult(result);
+        }
+      } catch (e) {
+        debugPrint('AI analysis error: $e');
+        if (mounted) {
+          setState(() {
+            _detectedSeverity = 'medium';
+            _isAnalyzingImage = false;
+          });
+        }
+      }
+    }
+  }
+
   Future<void> _captureImage(ImageSource source) async {
     Navigator.pop(context);
-    final XFile? image = await _picker.pickImage(
-      source: source,
-      imageQuality: 70,
-    );
+    
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
 
-    if (image != null) {
-      setState(() {
-        _image = File(image.path);
-      });
+      if (image != null && mounted) {
+        final imageFile = File(image.path);
+        
+        setState(() {
+          _image = imageFile;
+          _isAnalyzingImage = true;
+        });
+
+        // Analyze image for severity using AI
+        try {
+          final result = await _aiService.analyzeSeverity(imageFile);
+          if (mounted) {
+            setState(() {
+              _detectedSeverity = result.severity;
+              _isAnalyzingImage = false;
+            });
+            
+            // Show severity detection result
+            _showSeverityResult(result);
+          }
+        } catch (e) {
+          debugPrint('AI analysis error: $e');
+          if (mounted) {
+            setState(() {
+              _detectedSeverity = 'medium';
+              _isAnalyzingImage = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Image capture error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to capture image: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+
+  void _showSeverityResult(SeverityResult result) {
+    final emoji = AISeverityService.getSeverityEmoji(result.severity);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Severity: ${result.severity.toUpperCase()}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(result.details, style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AISeverityService.getSeverityColor(result.severity),
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   Future<void> _submitReportFlow() async {
@@ -487,6 +612,9 @@ class _ReportScreenState extends State<ReportScreen> {
   Future<void> _finalizeSubmission(String imageUrl) async {
     setState(() => _isLoading = true);
     try {
+      // Get device ID for gamification
+      final deviceId = await _deviceService.getDeviceId();
+      
       await _supabaseService.submitReport(
         imageUrl: imageUrl,
         latitude: _location!.latitude,
@@ -495,10 +623,17 @@ class _ReportScreenState extends State<ReportScreen> {
         areaName: _areaNameController.text,
         duration: _duration!,
         description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+        deviceId: deviceId,
+        severity: _detectedSeverity,
       );
+
+      // Update report count
+      await _deviceService.incrementReportCount();
 
       if (mounted) {
         context.read<ReportsCubit>().refreshReports();
+        
+        // Show success message
         _showSnackBar('Report submitted successfully! 🎉');
         
         // Reset form - stay on the same screen (it's part of bottom navigation)
@@ -521,6 +656,7 @@ class _ReportScreenState extends State<ReportScreen> {
        }
     }
   }
+
 
   Future<void> _launchEmail(String imageUrl) async {
     final subject = 'Pothole Reported: ${_areaNameController.text} - ${_addressController.text}';
@@ -607,10 +743,6 @@ A Concerned Citizen of Bangalore
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    if (_showMap) {
-      return _buildMapScreen(isDarkMode);
-    }
 
     return Scaffold(
       backgroundColor: isDarkMode ? AppTheme.darkBackground : AppTheme.lightBackground,
@@ -870,30 +1002,227 @@ A Concerned Citizen of Bangalore
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Section Header with instruction
         Row(
           children: [
             const Icon(Icons.place_rounded, size: 20, color: Color(0xFF667eea)),
             const SizedBox(width: 10),
             Text(
-              'Location Details',
+              'Location',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: isDarkMode ? Colors.white : Colors.black87,
               ),
             ),
+            const Text(' *', style: TextStyle(color: Colors.red, fontSize: 16)),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
+        
+        // Instruction text
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.location_searching, size: 18, color: isDarkMode ? Colors.white70 : Colors.black54),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Search for a location or click on the map to mark the exact pothole spot.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Search Bar (above the map to avoid clipping issues)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                color: (isDarkMode ? Colors.black : Colors.white).withOpacity(0.7),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1),
+                ),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _searchLocation,
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search in Bengaluru...',
+                  hintStyle: TextStyle(
+                    color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.5),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.5),
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchResults = [];
+                              _showSearchResults = false;
+                            });
+                          },
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.5),
+                          ),
+                        )
+                      : (_isSearching
+                          ? Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.5),
+                                ),
+                              ),
+                            )
+                          : null),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+              ),
+            ),
+          ),
+        ),
+        
+        // Search Results Dropdown
+        if (_showSearchResults && _searchResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            constraints: const BoxConstraints(maxHeight: 250),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: (isDarkMode ? Colors.black : Colors.white).withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1),
+                    ),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _searchResults.length,
+                    itemBuilder: (context, index) {
+                      final result = _searchResults[index];
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF667eea).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.place_rounded,
+                            color: Color(0xFF667eea),
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          result['name'],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${result['city']}, ${result['state']}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                        ),
+                        onTap: () => _selectLocation(result),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 12),
+        
+        // Map Container (separate from search)
         ClipRRect(
           borderRadius: BorderRadius.circular(20),
+          child: SizedBox(
+            height: 350,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _location ?? const LatLng(12.9716, 77.5946),
+                initialZoom: 16,
+                onTap: (tapPosition, point) {
+                  setState(() {
+                    _location = point;
+                    _showSearchResults = false;
+                  });
+                  _updateAddress(point.latitude, point.longitude);
+                },
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: isDarkMode
+                      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                      : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c'],
+                  userAgentPackageName: 'com.sujaykathi.pothole_hero',
+                  maxZoom: 19,
+                ),
+                if (_location != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _location!,
+                        width: 50,
+                        height: 50,
+                        child: const Icon(
+                          Icons.location_pin,
+                          color: Color(0xFF667eea),
+                          size: 50,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        
+        // Address Fields
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1),
                 ),
@@ -913,7 +1242,7 @@ A Concerned Citizen of Bangalore
                   ),
                   Divider(color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1)),
                   
-                  // Address Input
+                  // Address Display
                   Row(
                     children: [
                       Padding(
@@ -935,30 +1264,17 @@ A Concerned Citizen of Bangalore
                     ],
                   ),
                   
-                  if (_location != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const SizedBox(width: 40),
-                        Text(
+                  if (_location != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 40),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
                           'GPS: ${_location!.latitude.toStringAsFixed(4)}, ${_location!.longitude.toStringAsFixed(4)}',
                           style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                         ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: () => setState(() => _showMap = true),
-                          child: Text(
-                            'Adjust Map',
-                            style: TextStyle(
-                              color: const Color(0xFF667eea),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ],
                 ],
               ),
             ),
@@ -1142,233 +1458,6 @@ A Concerned Citizen of Bangalore
     );
   }
 
-  Widget _buildMapScreen(bool isDarkMode) {
-    return Scaffold(
-      backgroundColor: isDarkMode ? AppTheme.darkBackground : Colors.white,
-      body: Stack(
-        children: [
-          // Map Layer
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _location ?? const LatLng(12.9716, 77.5946),
-              initialZoom: 16,
-              onTap: (tapPosition, point) {
-                setState(() {
-                  _location = point;
-                });
-                _selectLocation({
-                  'lat': point.latitude,
-                  'lon': point.longitude,
-                  'name': 'Selected Location',
-                });
-              },
-            ),
-            children: [
-              TileLayer(
-                // Use OpenStreetMap tiles with full labels, building names, and area details
-                urlTemplate: isDarkMode
-                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c'],
-                userAgentPackageName: 'com.sujaykathi.pothole_hero',
-                maxZoom: 19,
-              ),
-              if (_location != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _location!,
-                      width: 50,
-                      height: 50,
-                      child: const Icon(
-                        Icons.location_pin,
-                        color: Color(0xFF667eea),
-                        size: 50,
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-
-          // Floating Header with Search (Copied from Home Screen style)
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Back Button + Search Bar
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: (isDarkMode ? Colors.black : Colors.white).withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        margin: const EdgeInsets.only(right: 10),
-                        child: IconButton(
-                          icon: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black),
-                          onPressed: () => setState(() => _showMap = false),
-                        ),
-                      ),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                            child: Container(
-                              height: 50, // Fixed height for alignment
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: (isDarkMode ? Colors.black : Colors.white).withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.search_rounded, 
-                                    color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.5)),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _searchController,
-                                      onChanged: _searchLocation,
-                                      style: TextStyle(
-                                        color: isDarkMode ? Colors.white : Colors.black87,
-                                        fontSize: 16,
-                                      ),
-                                      decoration: InputDecoration(
-                                        hintText: 'Search location...',
-                                        hintStyle: TextStyle(
-                                          color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.4),
-                                        ),
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_isSearching)
-                                    Container(
-                                      width: 16,
-                                      height: 16,
-                                      margin: const EdgeInsets.only(left: 8),
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.5),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Search Results List
-                  if (_showSearchResults && _searchResults.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(top: 12, left: 50), // Indent to align with search bar
-                      constraints: const BoxConstraints(maxHeight: 250),
-                      decoration: BoxDecoration(
-                        color: (isDarkMode ? const Color(0xFF1a1a2e) : Colors.white).withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        itemCount: _searchResults.length,
-                        itemBuilder: (context, index) {
-                          final result = _searchResults[index];
-                          return ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.location_on_rounded,
-                                size: 16,
-                                color: isDarkMode ? Colors.white70 : Colors.black54,
-                              ),
-                            ),
-                            title: Text(
-                              result['name'],
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isDarkMode ? Colors.white : Colors.black87,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: Text(
-                              [result['city'], result['state']].where((s) => s.isNotEmpty).join(', '),
-                              style: TextStyle(
-                                color: isDarkMode ? Colors.white54 : Colors.black45,
-                                fontSize: 12,
-                              ),
-                            ),
-                            onTap: () => _selectLocation(result),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Done Button
-          Positioned(
-            bottom: 24,
-            left: 20,
-            right: 20,
-            child: GestureDetector(
-                onTap: () => setState(() => _showMap = false),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF667eea).withOpacity(0.4),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                    'Confirm Location',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   void dispose() {
