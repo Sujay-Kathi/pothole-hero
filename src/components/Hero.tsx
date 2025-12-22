@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface HeroProps {
@@ -43,6 +43,19 @@ const Hero = ({ onGetStarted }: HeroProps) => {
                 Dashboard
               </Button>
             </Link>
+          </div>
+
+          {/* Download APK Button */}
+          <div className="flex justify-center pt-4">
+            <a href="/pothole-hero.apk" download="PotholeHero.apk">
+              <Button
+                size="lg"
+                className="group bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+              >
+                <Download className="mr-2 h-5 w-5 group-hover:animate-bounce" />
+                Download Android App
+              </Button>
+            </a>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12">

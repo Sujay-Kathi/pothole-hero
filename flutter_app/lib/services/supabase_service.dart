@@ -138,4 +138,198 @@ class SupabaseService {
       throw Exception('Failed to update report status: $e');
     }
   }
+
+  // ============ PHASE 1: UPVOTE SYSTEM ============
+
+  // Toggle upvote for a report (upvote if not upvoted, remove if already upvoted)
+  Future<bool> toggleUpvote(String reportId, String deviceId) async {
+    try {
+      final intId = int.tryParse(reportId);
+      
+      // Check if already upvoted
+      final existingUpvote = await _client
+          .from('pothole_upvotes')
+          .select()
+          .eq('report_id', intId ?? reportId)
+          .eq('device_id', deviceId)
+          .maybeSingle();
+      
+      if (existingUpvote != null) {
+        // Remove upvote
+        await _client
+            .from('pothole_upvotes')
+            .delete()
+            .eq('report_id', intId ?? reportId)
+            .eq('device_id', deviceId);
+        
+        // Decrement upvote count
+        await _updateUpvoteCount(reportId, -1);
+        debugPrint('👎 Removed upvote for report $reportId');
+        return false;
+      } else {
+        // Add upvote
+        await _client.from('pothole_upvotes').insert({
+          'report_id': intId ?? reportId,
+          'device_id': deviceId,
+        });
+        
+        // Increment upvote count
+        await _updateUpvoteCount(reportId, 1);
+        debugPrint('👍 Added upvote for report $reportId');
+        return true;
+      }
+    } catch (e) {
+      debugPrint('❌ Upvote toggle failed: $e');
+      throw Exception('Failed to toggle upvote: $e');
+    }
+  }
+
+  // Update upvote count on the report
+  Future<void> _updateUpvoteCount(String reportId, int delta) async {
+    try {
+      final intId = int.tryParse(reportId);
+      
+      // Get current count
+      final report = await _client
+          .from('pothole_reports')
+          .select('upvote_count')
+          .eq('id', intId ?? reportId)
+          .single();
+      
+      final currentCount = report['upvote_count'] ?? 0;
+      final newCount = (currentCount + delta).clamp(0, 999999);
+      
+      await _client
+          .from('pothole_reports')
+          .update({'upvote_count': newCount})
+          .eq('id', intId ?? reportId);
+    } catch (e) {
+      debugPrint('Failed to update upvote count: $e');
+    }
+  }
+
+  // Check if user has upvoted a report
+  Future<bool> hasUpvoted(String reportId, String deviceId) async {
+    try {
+      final intId = int.tryParse(reportId);
+      
+      final result = await _client
+          .from('pothole_upvotes')
+          .select('id')
+          .eq('report_id', intId ?? reportId)
+          .eq('device_id', deviceId)
+          .maybeSingle();
+      
+      return result != null;
+    } catch (e) {
+      debugPrint('Failed to check upvote status: $e');
+      return false;
+    }
+  }
+
+  // Get upvote status for multiple reports at once
+  Future<Map<String, bool>> getUpvoteStatusBatch(List<String> reportIds, String deviceId) async {
+    try {
+      final intIds = reportIds.map((id) => int.tryParse(id) ?? id).toList();
+      
+      final results = await _client
+          .from('pothole_upvotes')
+          .select('report_id')
+          .inFilter('report_id', intIds)
+          .eq('device_id', deviceId);
+      
+      final upvotedIds = (results as List).map((r) => r['report_id'].toString()).toSet();
+      
+      return {
+        for (var id in reportIds) id: upvotedIds.contains(id)
+      };
+    } catch (e) {
+      debugPrint('Failed to get batch upvote status: $e');
+      return {};
+    }
+  }
+
+  // ============ PHASE 1: DUPLICATE DETECTION ============
+
+  // Find nearby reports within specified radius (in meters)
+  Future<List<PotholeReport>> findNearbyReports(
+    double latitude,
+    double longitude, {
+    double radiusMeters = 50,
+  }) async {
+    try {
+      // Approximate degree conversion (1 degree ≈ 111km at equator)
+      final radiusDegrees = radiusMeters / 111000;
+      
+      final minLat = latitude - radiusDegrees;
+      final maxLat = latitude + radiusDegrees;
+      final minLon = longitude - radiusDegrees;
+      final maxLon = longitude + radiusDegrees;
+      
+      final response = await _client
+          .from('pothole_reports')
+          .select()
+          .gte('latitude', minLat)
+          .lte('latitude', maxLat)
+          .gte('longitude', minLon)
+          .lte('longitude', maxLon)
+          .order('upvote_count', ascending: false);
+      
+      return (response as List)
+          .map((json) => PotholeReport.fromJson(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Failed to find nearby reports: $e');
+      return [];
+    }
+  }
+
+  // Check for duplicates and return the primary report if found
+  Future<PotholeReport?> checkForDuplicate(double latitude, double longitude) async {
+    final nearbyReports = await findNearbyReports(latitude, longitude, radiusMeters: 50);
+    
+    if (nearbyReports.isEmpty) {
+      return null;
+    }
+    
+    // Return the report with highest upvotes (primary report)
+    return nearbyReports.first;
+  }
+
+  // Link a new report to an existing one (for duplicate handling)
+  Future<void> linkToExistingReport(String existingReportId, String deviceId) async {
+    try {
+      final intId = int.tryParse(existingReportId);
+      
+      // Just upvote the existing report instead of creating a duplicate
+      final hasAlreadyUpvoted = await hasUpvoted(existingReportId, deviceId);
+      if (!hasAlreadyUpvoted) {
+        await toggleUpvote(existingReportId, deviceId);
+      }
+      
+      debugPrint('🔗 Linked device $deviceId to existing report $existingReportId');
+    } catch (e) {
+      debugPrint('Failed to link report: $e');
+    }
+  }
+
+  // Get count of people who reported this location
+  Future<int> getReportersCount(String reportId) async {
+    try {
+      final intId = int.tryParse(reportId);
+      
+      final result = await _client
+          .from('pothole_upvotes')
+          .select('id')
+          .eq('report_id', intId ?? reportId)
+          .count(CountOption.exact);
+      
+      // Add 1 for the original reporter
+      return (result.count ?? 0) + 1;
+    } catch (e) {
+      debugPrint('Failed to get reporters count: $e');
+      return 1;
+    }
+  }
 }
+

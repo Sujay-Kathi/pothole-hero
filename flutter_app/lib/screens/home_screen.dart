@@ -10,6 +10,8 @@ import '../cubit/reports_cubit.dart';
 import '../cubit/theme_cubit.dart';
 import '../models/pothole_report.dart';
 import '../theme/app_theme.dart';
+import '../services/supabase_service.dart';
+import '../services/device_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +22,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
+  final SupabaseService _supabaseService = SupabaseService();
+  final DeviceService _deviceService = DeviceService();
   LatLng? _currentLocation;
   LatLng? _selectedLocation;
   bool _isLoading = true;
@@ -27,12 +31,19 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   bool _showSearchResults = false;
+  String? _deviceId;
+  Map<String, bool> _upvoteStatus = {};
 
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _loadDeviceId();
     context.read<ReportsCubit>().loadReports();
+  }
+
+  Future<void> _loadDeviceId() async {
+    _deviceId = await _deviceService.getDeviceId();
   }
 
   Future<void> _getCurrentLocation() async {
@@ -634,108 +645,253 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showReportDetails(PotholeReport report) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    bool hasUpvoted = _upvoteStatus[report.id] ?? false;
+    int upvoteCount = report.upvoteCount;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: (isDarkMode ? const Color(0xFF1a1a2e) : Colors.white).withOpacity(0.9),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 50,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    report.imageUrl,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 180,
-                      color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
-                      child: const Icon(Icons.broken_image_rounded, size: 50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: report.status == 'resolved'
-                        ? Colors.green.withOpacity(0.15)
-                        : Colors.orange.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    report.status.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: report.status == 'resolved' ? Colors.green : Colors.orange,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  report.areaName ?? 'Unknown Area',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.place_rounded, size: 16, color: Colors.grey.shade500),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        report.address ?? 'No address available',
-                        style: TextStyle(color: Colors.grey.shade500),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: (isDarkMode ? const Color(0xFF1a1a2e) : Colors.white).withOpacity(0.9),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.schedule_rounded, size: 16, color: Colors.grey.shade500),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Reported on ${_formatDate(report.createdAt)}',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(height: 20),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.network(
+                      report.imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 180,
+                        color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200,
+                        child: const Icon(Icons.broken_image_rounded, size: 50),
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-              ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Status & Severity Row
+                  Row(
+                    children: [
+                      // Status badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: report.status == 'resolved'
+                              ? Colors.green.withOpacity(0.15)
+                              : Colors.orange.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          report.status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: report.status == 'resolved' ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Severity badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getSeverityColor(report.severity).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _getSeverityEmoji(report.severity),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              report.severity.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _getSeverityColor(report.severity),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    report.areaName ?? 'Unknown Area',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.place_rounded, size: 16, color: Colors.grey.shade500),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          report.address ?? 'No address available',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.schedule_rounded, size: 16, color: Colors.grey.shade500),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Reported on ${_formatDate(report.createdAt)}',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Upvote Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        // Upvote Button
+                        GestureDetector(
+                          onTap: () async {
+                            if (_deviceId == null) return;
+                            try {
+                              final isNowUpvoted = await _supabaseService.toggleUpvote(report.id, _deviceId!);
+                              setModalState(() {
+                                hasUpvoted = isNowUpvoted;
+                                upvoteCount += isNowUpvoted ? 1 : -1;
+                              });
+                              setState(() {
+                                _upvoteStatus[report.id] = isNowUpvoted;
+                              });
+                              // Refresh reports
+                              if (mounted) {
+                                context.read<ReportsCubit>().loadReports();
+                              }
+                            } catch (e) {
+                              debugPrint('Upvote failed: $e');
+                            }
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              gradient: hasUpvoted
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                                    )
+                                  : null,
+                              color: hasUpvoted ? null : (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  hasUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
+                                  size: 20,
+                                  color: hasUpvoted ? Colors.white : (isDarkMode ? Colors.white70 : Colors.black54),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '$upvoteCount',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: hasUpvoted ? Colors.white : (isDarkMode ? Colors.white70 : Colors.black54),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Reporters count
+                        Expanded(
+                          child: Text(
+                            '${upvoteCount + 1} people reported this',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Color _getSeverityColor(String severity) {
+    switch (severity.toLowerCase()) {
+      case 'low':
+        return Colors.green;
+      case 'medium':
+        return Colors.orange;
+      case 'high':
+        return Colors.deepOrange;
+      case 'critical':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  String _getSeverityEmoji(String severity) {
+    switch (severity.toLowerCase()) {
+      case 'low':
+        return '🟢';
+      case 'medium':
+        return '🟡';
+      case 'high':
+        return '🟠';
+      case 'critical':
+        return '🔴';
+      default:
+        return '🟡';
+    }
   }
 
   String _formatDate(DateTime date) {

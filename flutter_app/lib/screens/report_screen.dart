@@ -17,6 +17,7 @@ import '../theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'in_app_camera_screen.dart';
+import '../models/pothole_report.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -615,46 +616,217 @@ class _ReportScreenState extends State<ReportScreen> {
       // Get device ID for gamification
       final deviceId = await _deviceService.getDeviceId();
       
-      await _supabaseService.submitReport(
-        imageUrl: imageUrl,
-        latitude: _location!.latitude,
-        longitude: _location!.longitude,
-        address: _addressController.text,
-        areaName: _areaNameController.text,
-        duration: _duration!,
-        description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
-        deviceId: deviceId,
-        severity: _detectedSeverity,
+      // Check for duplicate (nearby reports)
+      final existingReport = await _supabaseService.checkForDuplicate(
+        _location!.latitude,
+        _location!.longitude,
       );
-
-      // Update report count
-      await _deviceService.incrementReportCount();
-
-      if (mounted) {
-        context.read<ReportsCubit>().refreshReports();
-        
-        // Show success message
-        _showSnackBar('Report submitted successfully! 🎉');
-        
-        // Reset form - stay on the same screen (it's part of bottom navigation)
-        setState(() {
-          _image = null;
-          _descriptionController.clear();
-          _areaNameController.clear();
-          _addressController.text = 'Fetching location...';
-          _duration = null;
-          _isLoading = false;
-        });
-        
-        // Re-fetch current location for next report
-        _getCurrentLocation();
+      
+      if (existingReport != null && mounted) {
+        // Found a nearby report, ask user what to do
+        setState(() => _isLoading = false);
+        _showDuplicateDialog(imageUrl, existingReport, deviceId);
+        return;
       }
+      
+      // No duplicate found, proceed with new report
+      await _submitNewReport(imageUrl, deviceId);
     } catch (e) {
        if (mounted) {
          _showSnackBar('Error saving report: $e', isError: true);
          setState(() => _isLoading = false);
        }
     }
+  }
+
+  Future<void> _submitNewReport(String imageUrl, String deviceId) async {
+    await _supabaseService.submitReport(
+      imageUrl: imageUrl,
+      latitude: _location!.latitude,
+      longitude: _location!.longitude,
+      address: _addressController.text,
+      areaName: _areaNameController.text,
+      duration: _duration!,
+      description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+      deviceId: deviceId,
+      severity: _detectedSeverity,
+    );
+
+    // Update report count
+    await _deviceService.incrementReportCount();
+
+    if (mounted) {
+      context.read<ReportsCubit>().refreshReports();
+      
+      // Show success message
+      _showSnackBar('Report submitted successfully! 🎉');
+      
+      // Reset form
+      _resetForm();
+    }
+  }
+
+  void _resetForm() {
+    setState(() {
+      _image = null;
+      _descriptionController.clear();
+      _areaNameController.clear();
+      _addressController.text = 'Fetching location...';
+      _duration = null;
+      _isLoading = false;
+      _detectedSeverity = 'medium';
+    });
+    
+    // Re-fetch current location for next report
+    _getCurrentLocation();
+  }
+
+  void _showDuplicateDialog(String imageUrl, PotholeReport existingReport, String deviceId) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1a1a2e) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.warning_rounded, color: Colors.orange, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('Similar Report Found'),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'A pothole was already reported nearby:',
+              style: TextStyle(color: isDarkMode ? Colors.white70 : Colors.black54),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      existingReport.imageUrl,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 60,
+                        height: 60,
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.image, size: 30),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          existingReport.areaName ?? 'Unknown Area',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.thumb_up, size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${existingReport.upvoteCount + 1} people reported',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Would you like to upvote the existing report or submit a new one?',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              try {
+                // Submit as new report anyway
+                await _submitNewReport(imageUrl, deviceId);
+              } catch (e) {
+                if (mounted) {
+                  _showSnackBar('Error: $e', isError: true);
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            child: const Text('Submit New'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              try {
+                // Upvote existing report instead
+                await _supabaseService.linkToExistingReport(existingReport.id, deviceId);
+                
+                if (mounted) {
+                  context.read<ReportsCubit>().refreshReports();
+                  _showSnackBar('Added your voice to existing report! 👍');
+                  _resetForm();
+                }
+              } catch (e) {
+                if (mounted) {
+                  _showSnackBar('Error: $e', isError: true);
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF667eea),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Upvote Existing'),
+          ),
+        ],
+      ),
+    );
   }
 
 
