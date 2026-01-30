@@ -430,8 +430,23 @@ class _ReportScreenState extends State<ReportScreen> {
         _isAnalyzingImage = true;
       });
 
-      // Analyze image for severity using AI
+      // First validate if it's a pothole/road image
       try {
+        final validation = await _aiService.validatePotholeImage(capturedImage);
+        
+        if (!validation.isValid) {
+          // Image is not a valid pothole photo - reject it
+          if (mounted) {
+            setState(() {
+              _image = null;
+              _isAnalyzingImage = false;
+            });
+            _showValidationError(validation);
+          }
+          return;
+        }
+
+        // Valid image - proceed with severity analysis
         final result = await _aiService.analyzeSeverity(capturedImage);
         if (mounted) {
           setState(() {
@@ -473,8 +488,23 @@ class _ReportScreenState extends State<ReportScreen> {
           _isAnalyzingImage = true;
         });
 
-        // Analyze image for severity using AI
+        // First validate if it's a pothole/road image
         try {
+          final validation = await _aiService.validatePotholeImage(imageFile);
+          
+          if (!validation.isValid) {
+            // Image is not a valid pothole photo - reject it
+            if (mounted) {
+              setState(() {
+                _image = null;
+                _isAnalyzingImage = false;
+              });
+              _showValidationError(validation);
+            }
+            return;
+          }
+
+          // Valid image - proceed with severity analysis
           final result = await _aiService.analyzeSeverity(imageFile);
           if (mounted) {
             setState(() {
@@ -537,6 +567,123 @@ class _ReportScreenState extends State<ReportScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  /// Show validation error dialog when image is not a valid pothole/road photo
+  void _showValidationError(ValidationResult validation) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF1a1a2e) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.no_photography_rounded, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Invalid Image',
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      validation.message,
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              validation.details,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    color: Colors.amber.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tip: Make sure the pothole and road surface are clearly visible in the photo.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white60 : Colors.black45,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showImagePicker(); // Allow user to try again
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF667eea),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Try Again'),
+          ),
+        ],
       ),
     );
   }

@@ -191,10 +191,139 @@ class AISeverityService {
     }
   }
 
+  /// Validate if the image is a pothole/road damage
+  /// Returns ValidationResult with isValid flag and message
+  Future<ValidationResult> validatePotholeImage(File imageFile) async {
+    try {
+      await initialize();
+      
+      final inputImage = InputImage.fromFile(imageFile);
+      final labels = await _imageLabeler!.processImage(inputImage);
+      
+      debugPrint('🔍 Validating image - detected ${labels.length} labels');
+      for (final label in labels) {
+        debugPrint('  - ${label.label}: ${(label.confidence * 100).toStringAsFixed(1)}%');
+      }
+
+      // Keywords that indicate road/outdoor environment (must have at least one)
+      const roadKeywords = [
+        'road', 'asphalt', 'pavement', 'street', 'highway', 'path', 
+        'ground', 'concrete', 'tar', 'surface', 'floor', 'gravel',
+        'sidewalk', 'lane', 'driveway', 'parking', 'outdoor', 'nature',
+        'soil', 'dirt', 'mud', 'stone', 'rock', 'terrain'
+      ];
+      
+      // Keywords that indicate non-road content (should reject)
+      const rejectKeywords = [
+        'person', 'face', 'selfie', 'human', 'portrait', 'people',
+        'food', 'meal', 'drink', 'fruit', 'vegetable', 'cuisine',
+        'animal', 'pet', 'dog', 'cat', 'bird', 'fish',
+        'indoor', 'room', 'furniture', 'table', 'chair', 'bed',
+        'screen', 'computer', 'phone', 'laptop', 'television',
+        'text', 'document', 'paper', 'book', 'screenshot'
+      ];
+
+      bool hasRoadIndicator = false;
+      bool hasRejectIndicator = false;
+      String rejectReason = '';
+      double roadConfidence = 0.0;
+      
+      for (final label in labels) {
+        final labelLower = label.label.toLowerCase();
+        
+        // Check for road indicators
+        for (final keyword in roadKeywords) {
+          if (labelLower.contains(keyword)) {
+            hasRoadIndicator = true;
+            if (label.confidence > roadConfidence) {
+              roadConfidence = label.confidence;
+            }
+            break;
+          }
+        }
+        
+        // Check for reject indicators (only if confidence is high)
+        if (label.confidence > 0.6) {
+          for (final keyword in rejectKeywords) {
+            if (labelLower.contains(keyword)) {
+              hasRejectIndicator = true;
+              rejectReason = label.label;
+              break;
+            }
+          }
+        }
+      }
+
+      // Validation logic (lenient - road must be detected)
+      if (hasRejectIndicator && !hasRoadIndicator) {
+        return ValidationResult(
+          isValid: false,
+          message: 'This doesn\'t look like a road photo. Detected: $rejectReason',
+          details: 'Please take a photo of the pothole or road damage.',
+        );
+      }
+      
+      if (!hasRoadIndicator && labels.isNotEmpty) {
+        // No road detected, but let's check if it's a very unclear image
+        return ValidationResult(
+          isValid: false,
+          message: 'No road or pavement detected in the image.',
+          details: 'Please take a clear photo showing the pothole on the road.',
+        );
+      }
+      
+      if (labels.isEmpty) {
+        // ML Kit couldn't detect anything - might be too dark or blurry
+        return ValidationResult(
+          isValid: false,
+          message: 'Could not analyze the image.',
+          details: 'Please take a clearer photo with good lighting.',
+        );
+      }
+
+      // Valid - road detected
+      return ValidationResult(
+        isValid: true,
+        message: 'Road detected ✓',
+        details: 'Image validated successfully.',
+        confidence: roadConfidence,
+      );
+      
+    } catch (e) {
+      debugPrint('❌ Pothole validation error: $e');
+      // On error, allow the image (fail-open for better UX)
+      return ValidationResult(
+        isValid: true,
+        message: 'Validation skipped',
+        details: 'Could not validate image, proceeding anyway.',
+      );
+    }
+  }
+
   // Dispose resources
   Future<void> dispose() async {
     await _imageLabeler?.close();
     _imageLabeler = null;
+  }
+}
+
+/// Result of pothole image validation
+class ValidationResult {
+  final bool isValid;
+  final String message;
+  final String details;
+  final double confidence;
+
+  ValidationResult({
+    required this.isValid,
+    required this.message,
+    required this.details,
+    this.confidence = 0.0,
+  });
+
+  @override
+  String toString() {
+    return 'ValidationResult(isValid: $isValid, message: $message)';
   }
 }
 
