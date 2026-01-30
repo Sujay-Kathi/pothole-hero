@@ -12,6 +12,7 @@ import '../models/pothole_report.dart';
 import '../theme/app_theme.dart';
 import '../services/supabase_service.dart';
 import '../services/device_service.dart';
+import '../services/community_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
   final SupabaseService _supabaseService = SupabaseService();
   final DeviceService _deviceService = DeviceService();
+  final CommunityService _communityService = CommunityService();
   LatLng? _currentLocation;
   LatLng? _selectedLocation;
   bool _isLoading = true;
@@ -854,6 +856,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  
+                  // Comments Section
+                  _InlineCommentsSection(
+                    reportId: report.id,
+                    communityService: _communityService,
+                    isDarkMode: isDarkMode,
+                  ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -903,5 +913,347 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+}
+
+/// Inline Comments Section Widget
+class _InlineCommentsSection extends StatefulWidget {
+  final String reportId;
+  final CommunityService communityService;
+  final bool isDarkMode;
+
+  const _InlineCommentsSection({
+    required this.reportId,
+    required this.communityService,
+    required this.isDarkMode,
+  });
+
+  @override
+  State<_InlineCommentsSection> createState() => _InlineCommentsSectionState();
+}
+
+class _InlineCommentsSectionState extends State<_InlineCommentsSection> {
+  final TextEditingController _commentController = TextEditingController();
+  List<Map<String, dynamic>> _comments = [];
+  bool _isLoading = true;
+  bool _isExpanded = false;
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComments();
+  }
+
+  Future<void> _loadComments() async {
+    try {
+      final comments = await widget.communityService.getComments(widget.reportId);
+      if (mounted) {
+        setState(() {
+          _comments = comments;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _sendComment() async {
+    if (_commentController.text.trim().isEmpty) return;
+    
+    setState(() => _isSending = true);
+    
+    try {
+      final success = await widget.communityService.addComment(
+        widget.reportId,
+        _commentController.text.trim(),
+      );
+      
+      if (success && mounted) {
+        _commentController.clear();
+        await _loadComments();
+      }
+    } catch (e) {
+      debugPrint('Failed to send comment: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Comments Header
+        GestureDetector(
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.comment_outlined,
+                  size: 20,
+                  color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Comments',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF667eea).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${_comments.length}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF667eea),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                AnimatedRotation(
+                  turns: _isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: widget.isDarkMode ? Colors.white54 : Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Expandable Comments Content
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Column(
+            children: [
+              const SizedBox(height: 12),
+              
+              // Comment Input
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _commentController,
+                        style: TextStyle(
+                          color: widget.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Add a comment...',
+                          hintStyle: TextStyle(
+                            color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.4),
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        ),
+                        maxLines: 2,
+                        minLines: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _isSending ? null : _sendComment,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: _isSending
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded, size: 18, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Comments List
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              else if (_comments.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 40,
+                          color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.2),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No comments yet',
+                          style: TextStyle(
+                            color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.4),
+                          ),
+                        ),
+                        Text(
+                          'Be the first to comment!',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _comments.length > 5 ? 5 : _comments.length,
+                  itemBuilder: (context, index) {
+                    final comment = _comments[index];
+                    return _buildCommentItem(comment);
+                  },
+                ),
+              
+              if (_comments.length > 5)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '+ ${_comments.length - 5} more comments',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: const Color(0xFF667eea),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          crossFadeState: _isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 300),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCommentItem(Map<String, dynamic> comment) {
+    final createdAt = DateTime.tryParse(comment['created_at'] ?? '') ?? DateTime.now();
+    final timeAgo = _getTimeAgo(createdAt);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.03),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Icon(Icons.person_rounded, size: 16, color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  comment['device_users']?['nickname'] ?? 'Anonymous',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: widget.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+              Text(
+                timeAgo,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: (widget.isDarkMode ? Colors.white : Colors.black).withOpacity(0.4),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            comment['content'] ?? '',
+            style: TextStyle(
+              fontSize: 13,
+              color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

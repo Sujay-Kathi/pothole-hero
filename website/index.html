@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pothole Hero - Report potholes, save lives. A community-driven app to report and track road damage in Bengaluru.">
+  <meta name="keywords" content="pothole, road damage, bengaluru, report, civic, community, app">
+  <title>Pothole Hero - Report Potholes, Save Lives</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Hero Section -->
+  <header class="hero">
+    <nav class="navbar">
+      <div class="nav-logo">
+        <div class="logo-icon">🛣️</div>
+        <span class="logo-text">Pothole Hero</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#download" class="btn-nav">Download</a>
+      </div>
+      <div class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </nav>
+    
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#features" onclick="toggleMobileMenu()">Features</a>
+      <a href="#how-it-works" onclick="toggleMobileMenu()">How It Works</a>
+      <a href="#download" onclick="toggleMobileMenu()">Download</a>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-text">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          Community Powered
+        </div>
+        <h1>Report Potholes.<br><span class="gradient-text">Save Lives.</span></h1>
+        <p class="hero-description">
+          Join thousands of Bengaluru citizens in making our roads safer. 
+          Report potholes instantly with AI-powered analysis, track their status, 
+          and help prioritize road repairs in your community.
+        </p>
+        <div class="hero-buttons">
+          <a href="#download" class="btn-primary">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Download APK
+          </a>
+          <a href="#how-it-works" class="btn-secondary">
+            Learn More
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-number">500+</span>
+            <span class="stat-label">Reports Filed</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">50+</span>
+            <span class="stat-label">Areas Covered</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">100%</span>
+            <span class="stat-label">Free & Open</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="app-preview">
+              <div class="preview-header">
+                <div class="preview-logo">📍</div>
+                <span>Pothole Hero</span>
+              </div>
+              <div class="preview-map"></div>
+              <div class="preview-card">
+                <div class="preview-icon">⚠️</div>
+                <div class="preview-text">
+                  <span class="preview-title">Koramangala 5th Block</span>
+                  <span class="preview-status">Pending Review</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="floating-card card-1">
+          <span class="card-icon">🚧</span>
+          <span class="card-text">AI Severity Detection</span>
+        </div>
+        <div class="floating-card card-2">
+          <span class="card-icon">📍</span>
+          <span class="card-text">GPS Location</span>
+        </div>
+        <div class="floating-card card-3">
+          <span class="card-icon">✅</span>
+          <span class="card-text">Track Progress</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="scroll-indicator">
+      <span>Scroll to explore</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </header>
+
+  <!-- Features Section -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Features</span>
+        <h2>Everything You Need to<br><span class="gradient-text">Report Road Issues</span></h2>
+        <p>Powerful features designed to make road reporting fast, accurate, and impactful.</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📸</div>
+          <h3>One-Tap Photo Report</h3>
+          <p>Capture pothole images instantly with our built-in camera. Just point, shoot, and submit - it's that simple.</p>
+        </div>
+        <div class="feature-card featured">
+          <div class="feature-icon">🤖</div>
+          <h3>AI-Powered Analysis</h3>
+          <p>Our machine learning model automatically validates photos and assesses pothole severity (Low, Medium, High, Critical).</p>
+          <span class="feature-badge">NEW</span>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🗺️</div>
+          <h3>Precise GPS Location</h3>
+          <p>Automatic location detection with manual pin adjustment for exact accuracy. Search any address in Bengaluru.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>City Dashboard</h3>
+          <p>View city-wide analytics, heatmaps of problem areas, and track which neighborhoods need the most attention.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👍</div>
+          <h3>Community Voting</h3>
+          <p>Upvote reports to prioritize repairs. The more votes, the higher the priority for authorities to address.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3>Comments & Updates</h3>
+          <p>Add comments to reports, share updates, and stay informed about the status of reported potholes.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌙</div>
+          <h3>Dark Mode</h3>
+          <p>Eye-friendly dark theme for comfortable usage day or night. Switch themes with a single tap.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3>Gamification</h3>
+          <p>Earn points for reporting potholes, commenting, and voting. Climb the leaderboard and become a Pothole Hero!</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="how-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">How It Works</span>
+        <h2>Report a Pothole in<br><span class="gradient-text">4 Simple Steps</span></h2>
+        <p>Make your voice heard and contribute to safer roads in Bengaluru.</p>
+      </div>
+      
+      <div class="steps-container">
+        <div class="step">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <div class="step-icon">📱</div>
+            <h3>Download & Open the App</h3>
+            <p>Download the Pothole Hero APK from this website and install it on your Android device. Open the app and allow location permissions.</p>
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <div class="step-icon">📷</div>
+            <h3>Capture the Pothole</h3>
+            <p>Tap the "+" button in the navigation bar. Use the camera to take a clear photo of the pothole. Our AI will validate the image and detect the severity automatically.</p>
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <div class="step-icon">📍</div>
+            <h3>Set the Location</h3>
+            <p>The app auto-detects your GPS location. You can also search for an address or tap on the map to set the exact pothole location. Add optional description and how long the pothole has existed.</p>
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">04</div>
+          <div class="step-content">
+            <div class="step-icon">✅</div>
+            <h3>Submit & Track</h3>
+            <p>Hit submit! Your report is now visible on the city map. Track its status, get upvotes from other users, and receive updates when authorities take action.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tips-section">
+        <h3>📌 Tips for Better Reports</h3>
+        <div class="tips-grid">
+          <div class="tip">
+            <span class="tip-icon">☀️</span>
+            <p>Take photos in good lighting conditions for accurate AI analysis</p>
+          </div>
+          <div class="tip">
+            <span class="tip-icon">📐</span>
+            <p>Capture the full pothole from a slight angle to show depth</p>
+          </div>
+          <div class="tip">
+            <span class="tip-icon">🚗</span>
+            <p>Include surrounding road for context (don't just zoom on the hole)</p>
+          </div>
+          <div class="tip">
+            <span class="tip-icon">📝</span>
+            <p>Add description like "near bus stop" for easier identification</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="about-section">
+    <div class="container">
+      <div class="about-content">
+        <div class="about-text">
+          <span class="section-label">About the Project</span>
+          <h2>Built for<br><span class="gradient-text">Bengaluru's Roads</span></h2>
+          <p>
+            Pothole Hero is a civic-tech initiative designed to bridge the gap between citizens and city authorities. 
+            Our mission is to make road infrastructure reporting accessible, transparent, and efficient.
+          </p>
+          <p>
+            This project was developed as part of the IDT (Information Design & Technology) course, 
+            showcasing the potential of mobile technology and AI in solving real-world urban problems.
+          </p>
+          <div class="about-highlights">
+            <div class="highlight">
+              <span class="highlight-icon">🎯</span>
+              <div>
+                <strong>Our Goal</strong>
+                <span>Create safer roads through community participation</span>
+              </div>
+            </div>
+            <div class="highlight">
+              <span class="highlight-icon">🔧</span>
+              <div>
+                <strong>Technology Stack</strong>
+                <span>Flutter, Supabase, Google ML Kit, OpenStreetMap</span>
+              </div>
+            </div>
+            <div class="highlight">
+              <span class="highlight-icon">🌍</span>
+              <div>
+                <strong>Open Source</strong>
+                <span>100% free with no ads or hidden fees</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="about-image">
+          <div class="about-visual">
+            <div class="visual-card v1">🛣️ Road Safety</div>
+            <div class="visual-card v2">🤝 Community</div>
+            <div class="visual-card v3">📱 Technology</div>
+            <div class="visual-center">❤️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section id="download" class="download-section">
+    <div class="container">
+      <div class="download-card">
+        <div class="download-content">
+          <span class="section-label">Get Started</span>
+          <h2>Download Pothole Hero Now</h2>
+          <p>Available for Android devices. iOS version coming soon!</p>
+          
+          <div class="download-info">
+            <div class="info-item">
+              <span class="info-label">Version</span>
+              <span class="info-value">1.0.0</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Size</span>
+              <span class="info-value">~25 MB</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Requires</span>
+              <span class="info-value">Android 6.0+</span>
+            </div>
+          </div>
+          
+          <a href="./pothole-hero.apk" class="btn-download" download>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0004.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4486.9997-.9993.9997m11.4043-6.5097l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 7.2107 13.8533 6.4971 12 6.4971 10.1467 6.4971 8.4098 7.2107 6.8637 8.3697L4.8414 4.8668a.416.416 0 00-.5676-.1521.416.416 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1187-9.9293"/>
+            </svg>
+            Download for Android
+          </a>
+          
+          <p class="download-note">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4M12 8h.01"/>
+            </svg>
+            You may need to enable "Install from unknown sources" in your device settings.
+          </p>
+        </div>
+        
+        <div class="download-qr">
+          <div class="qr-placeholder">
+            <span>📱</span>
+            <p>Scan to Download</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="installation-steps">
+        <h3>Installation Instructions</h3>
+        <div class="install-steps">
+          <div class="install-step">
+            <span class="step-num">1</span>
+            <p>Download the APK file by clicking the button above</p>
+          </div>
+          <div class="install-step">
+            <span class="step-num">2</span>
+            <p>Open your Downloads folder and tap on the APK file</p>
+          </div>
+          <div class="install-step">
+            <span class="step-num">3</span>
+            <p>If prompted, go to Settings → Security → Allow installation from unknown sources</p>
+          </div>
+          <div class="install-step">
+            <span class="step-num">4</span>
+            <p>Tap "Install" and wait for the installation to complete</p>
+          </div>
+          <div class="install-step">
+            <span class="step-num">5</span>
+            <p>Open Pothole Hero and start reporting!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="logo-icon">🛣️</div>
+            <span class="logo-text">Pothole Hero</span>
+          </div>
+          <p>Making Bengaluru's roads safer, one report at a time.</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Quick Links</h4>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#about">About</a>
+            <a href="#download">Download</a>
+          </div>
+          <div class="footer-column">
+            <h4>Project</h4>
+            <a href="https://github.com/Sujay-Kathi/pothole-hero" target="_blank">GitHub Repository</a>
+            <a href="#">Documentation</a>
+            <a href="#">Privacy Policy</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Pothole Hero. Built with ❤️ for Bengaluru.</p>
+        <p>IDT Project by Sujay Kathi</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('active');
+    }
+    
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+    
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+      const navbar = document.querySelector('.navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+    
+    // Animate elements on scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+        }
+      });
+    }, observerOptions);
+    
+    document.querySelectorAll('.feature-card, .step, .tip').forEach(el => {
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>

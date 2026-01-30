@@ -1,0 +1,33 @@
+{
+    "buildCommand": null,
+    "outputDirectory": ".",
+    "framework": null,
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                },
+                {
+                    "key": "X-Frame-Options",
+                    "value": "SAMEORIGIN"
+                }
+            ]
+        },
+        {
+            "source": "/pothole-hero.apk",
+            "headers": [
+                {
+                    "key": "Content-Type",
+                    "value": "application/vnd.android.package-archive"
+                },
+                {
+                    "key": "Content-Disposition",
+                    "value": "attachment; filename=\"pothole-hero.apk\""
+                }
+            ]
+        }
+    ]
+}

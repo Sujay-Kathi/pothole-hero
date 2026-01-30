@@ -103,8 +103,8 @@ class CommunityService {
   Future<List<Map<String, dynamic>>> getComments(String reportId) async {
     try {
       final response = await _client
-          .from('comments')
-          .select('*, device_users!inner(nickname)')
+          .from('pothole_comments')
+          .select('*, device_users(nickname)')
           .eq('report_id', int.parse(reportId))
           .order('created_at', ascending: false);
       return List<Map<String, dynamic>>.from(response);
@@ -112,7 +112,7 @@ class CommunityService {
       // Fallback without join
       try {
         final response = await _client
-            .from('comments')
+            .from('pothole_comments')
             .select()
             .eq('report_id', int.parse(reportId))
             .order('created_at', ascending: false);
@@ -130,7 +130,7 @@ class CommunityService {
     final deviceId = await _deviceService.getDeviceId();
     
     try {
-      await _client.from('comments').insert({
+      await _client.from('pothole_comments').insert({
         'report_id': int.parse(reportId),
         'device_id': deviceId,
         'content': content.trim(),
@@ -151,7 +151,7 @@ class CommunityService {
     
     try {
       await _client
-          .from('comments')
+          .from('pothole_comments')
           .delete()
           .eq('id', commentId)
           .eq('device_id', deviceId);
@@ -165,7 +165,7 @@ class CommunityService {
   Future<int> getCommentCount(String reportId) async {
     try {
       final response = await _client
-          .from('comments')
+          .from('pothole_comments')
           .select('id')
           .eq('report_id', int.parse(reportId));
       return (response as List).length;

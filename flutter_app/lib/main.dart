@@ -155,30 +155,35 @@ class _MainNavigationState extends State<MainNavigation> {
                     ],
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildNavItem(
-                        icon: Icons.explore_outlined,
-                        activeIcon: Icons.explore_rounded,
-                        label: 'Explore',
-                        index: 0,
-                        isDarkMode: isDarkMode,
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.explore_outlined,
+                          activeIcon: Icons.explore_rounded,
+                          label: 'Explore',
+                          index: 0,
+                          isDarkMode: isDarkMode,
+                        ),
                       ),
-                      _buildNavItem(
-                        icon: Icons.list_alt_outlined,
-                        activeIcon: Icons.list_alt_rounded,
-                        label: 'Reports',
-                        index: 2,
-                        isDarkMode: isDarkMode,
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.list_alt_outlined,
+                          activeIcon: Icons.list_alt_rounded,
+                          label: 'Reports',
+                          index: 2,
+                          isDarkMode: isDarkMode,
+                        ),
                       ),
-                      // Spacer for center button
-                      const SizedBox(width: 72),
-                      _buildNavItem(
-                        icon: Icons.bar_chart_outlined,
-                        activeIcon: Icons.bar_chart_rounded,
-                        label: 'Stats',
-                        index: 3,
-                        isDarkMode: isDarkMode,
+                      // Spacer for center FAB
+                      const SizedBox(width: 64),
+                      Expanded(
+                        child: _buildNavItem(
+                          icon: Icons.bar_chart_outlined,
+                          activeIcon: Icons.bar_chart_rounded,
+                          label: 'Stats',
+                          index: 3,
+                          isDarkMode: isDarkMode,
+                        ),
                       ),
                     ],
                   ),

@@ -194,8 +194,71 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  // Fallback method using geocoding package
+  // Fallback method using Photon reverse geocoding + geocoding package
   Future<void> _fallbackUpdateAddress(double lat, double lng) async {
+    debugPrint('📍 Fallback: Trying Photon reverse geocoding...');
+    
+    // Try Photon reverse geocoding first (free, no API key)
+    try {
+      final photonUrl = 'https://photon.komoot.io/reverse?lat=$lat&lon=$lng&lang=en';
+      final response = await http.get(Uri.parse(photonUrl)).timeout(const Duration(seconds: 5));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final features = data['features'] as List;
+        
+        if (features.isNotEmpty) {
+          final props = features[0]['properties'] as Map<String, dynamic>;
+          
+          List<String> addressParts = [];
+          
+          // Build full address from components
+          if (props['name'] != null) addressParts.add(props['name']);
+          if (props['housenumber'] != null && props['street'] != null) {
+            addressParts.add('${props['housenumber']}, ${props['street']}');
+          } else if (props['street'] != null) {
+            addressParts.add(props['street']);
+          }
+          if (props['locality'] != null && !addressParts.contains(props['locality'])) {
+            addressParts.add(props['locality']);
+          }
+          if (props['district'] != null && !addressParts.contains(props['district'])) {
+            addressParts.add(props['district']);
+          }
+          if (props['city'] != null && !addressParts.contains(props['city'])) {
+            addressParts.add(props['city']);
+          }
+          if (props['state'] != null) addressParts.add(props['state']);
+          if (props['postcode'] != null) addressParts.add(props['postcode']);
+          
+          // Remove duplicates
+          List<String> uniqueParts = [];
+          for (var part in addressParts) {
+            if (part.toString().isNotEmpty && !uniqueParts.contains(part)) {
+              uniqueParts.add(part.toString());
+            }
+          }
+          
+          final fullAddress = uniqueParts.join(', ');
+          String areaName = props['locality'] ?? props['suburb'] ?? props['district'] ?? '';
+          
+          debugPrint('📍 Photon reverse result: $fullAddress');
+          
+          if (fullAddress.isNotEmpty) {
+            setState(() {
+              _addressController.text = fullAddress;
+              _areaNameController.text = areaName.isNotEmpty ? areaName : 'Unknown Area';
+            });
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Photon reverse geocoding failed: $e');
+    }
+    
+    // Final fallback: Use geocoding package
+    debugPrint('📍 Fallback: Trying geocoding package...');
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
       if (placemarks.isNotEmpty) {
@@ -241,7 +304,7 @@ class _ReportScreenState extends State<ReportScreen> {
   Future<void> _searchLocation(String query) async {
     debugPrint('🔍 Search called with query: "$query"');
     
-    if (query.length < 3) {
+    if (query.length < 2) {
       setState(() {
         _searchResults = [];
         _showSearchResults = false;
@@ -252,39 +315,122 @@ class _ReportScreenState extends State<ReportScreen> {
     setState(() => _isSearching = true);
 
     try {
-      // Use Nominatim search API (same as OpenStreetMap)
-      // Restricted to Bengaluru bounding box
-      final url = 'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=8&viewbox=77.3,13.3,77.9,12.8&bounded=1';
-      debugPrint('🌐 Fetching: $url');
+      final results = <Map<String, dynamic>>[];
       
-      final response = await http.get(Uri.parse(url), headers: {
-        'User-Agent': 'PotholeHero/1.0',
-        'Accept-Language': 'en',
-      });
-      debugPrint('📡 Response status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        debugPrint('📍 Found ${data.length} results');
-
-        setState(() {
-          _searchResults = data.map((item) {
-            final address = item['address'] as Map<String, dynamic>?;
-            return {
-              'name': item['display_name']?.split(',')[0] ?? item['name'] ?? 'Unknown',
-              'city': address?['city'] ?? address?['town'] ?? address?['suburb'] ?? '',
-              'state': address?['state'] ?? '',
-              'lat': double.parse(item['lat'].toString()),
-              'lon': double.parse(item['lon'].toString()),
-              'display_name': item['display_name'] ?? '',
-            };
-          }).toList();
-          _showSearchResults = _searchResults.isNotEmpty;
-          debugPrint('✅ _showSearchResults = $_showSearchResults, results: ${_searchResults.length}');
-        });
-      } else {
-        debugPrint('❌ API returned status: ${response.statusCode}');
+      // Append "Bangalore" or "Bengaluru" to improve search accuracy
+      final enhancedQuery = query.toLowerCase().contains('bangalore') || 
+                           query.toLowerCase().contains('bengaluru')
+          ? query
+          : '$query, Bengaluru';
+      
+      // Source 1: Photon API (Komoot) - usually faster and more accurate
+      try {
+        final photonUrl = 'https://photon.komoot.io/api/?q=${Uri.encodeComponent(enhancedQuery)}&lat=12.9716&lon=77.5946&limit=10&lang=en';
+        debugPrint('🌐 Photon URL: $photonUrl');
+        
+        final photonResponse = await http.get(Uri.parse(photonUrl)).timeout(const Duration(seconds: 5));
+        
+        if (photonResponse.statusCode == 200) {
+          final data = json.decode(photonResponse.body);
+          final features = data['features'] as List;
+          
+          for (var feature in features) {
+            final props = feature['properties'] as Map<String, dynamic>;
+            final coords = feature['geometry']['coordinates'] as List;
+            final lat = coords[1] as double;
+            final lon = coords[0] as double;
+            
+            // Filter to Bangalore region (approximate bounding box)
+            if (lat >= 12.7 && lat <= 13.3 && lon >= 77.3 && lon <= 77.9) {
+              final name = props['name'] ?? 'Unknown';
+              final street = props['street'] ?? '';
+              final locality = props['locality'] ?? '';
+              final district = props['district'] ?? '';
+              final city = props['city'] ?? '';
+              
+              // Build display name
+              List<String> parts = [];
+              if (name.isNotEmpty) parts.add(name);
+              if (street.isNotEmpty && street != name) parts.add(street);
+              if (locality.isNotEmpty && locality != name) parts.add(locality);
+              
+              results.add({
+                'name': name,
+                'city': city.isNotEmpty ? city : (district.isNotEmpty ? district : 'Bengaluru'),
+                'state': props['state'] ?? 'Karnataka',
+                'lat': lat,
+                'lon': lon,
+                'display_name': parts.join(', '),
+                'source': 'photon',
+              });
+            }
+          }
+          debugPrint('📍 Photon found ${results.length} results in Bangalore region');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Photon search failed: $e');
       }
+
+      // Source 2: Nominatim API - as fallback or additional results
+      if (results.length < 5) {
+        try {
+          final nominatimUrl = 'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(enhancedQuery)}&format=json&addressdetails=1&limit=8&countrycodes=in';
+          debugPrint('🌐 Nominatim URL: $nominatimUrl');
+          
+          final response = await http.get(Uri.parse(nominatimUrl), headers: {
+            'User-Agent': 'PotholeHero/1.0',
+            'Accept-Language': 'en',
+          }).timeout(const Duration(seconds: 5));
+
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body) as List;
+            
+            for (var item in data) {
+              final lat = double.parse(item['lat'].toString());
+              final lon = double.parse(item['lon'].toString());
+              
+              // Filter to Bangalore region
+              if (lat >= 12.7 && lat <= 13.3 && lon >= 77.3 && lon <= 77.9) {
+                final address = item['address'] as Map<String, dynamic>?;
+                final name = item['display_name']?.split(',')[0] ?? item['name'] ?? 'Unknown';
+                
+                // Avoid duplicates
+                bool isDuplicate = results.any((r) => 
+                  (r['lat'] - lat).abs() < 0.001 && (r['lon'] - lon).abs() < 0.001
+                );
+                
+                if (!isDuplicate) {
+                  results.add({
+                    'name': name,
+                    'city': address?['city'] ?? address?['town'] ?? address?['suburb'] ?? 'Bengaluru',
+                    'state': address?['state'] ?? 'Karnataka',
+                    'lat': lat,
+                    'lon': lon,
+                    'display_name': item['display_name'] ?? '',
+                    'source': 'nominatim',
+                  });
+                }
+              }
+            }
+            debugPrint('📍 Nominatim found additional results, total: ${results.length}');
+          }
+        } catch (e) {
+          debugPrint('⚠️ Nominatim search failed: $e');
+        }
+      }
+
+      // Sort by relevance (prefer results that contain the query in the name)
+      results.sort((a, b) {
+        final aMatch = a['name'].toString().toLowerCase().contains(query.toLowerCase()) ? 0 : 1;
+        final bMatch = b['name'].toString().toLowerCase().contains(query.toLowerCase()) ? 0 : 1;
+        return aMatch.compareTo(bMatch);
+      });
+
+      setState(() {
+        _searchResults = results.take(10).toList(); // Limit to 10 results
+        _showSearchResults = _searchResults.isNotEmpty;
+        debugPrint('✅ _showSearchResults = $_showSearchResults, results: ${_searchResults.length}');
+      });
     } catch (e) {
       debugPrint('❌ Search error: $e');
     } finally {
