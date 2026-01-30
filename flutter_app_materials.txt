@@ -1,0 +1,78 @@
+MATERIALS USED FOR BUILDING THE POTHOLE HERO FLUTTER APP
+=========================================================
+
+1. Development Framework
+• Flutter SDK (Version 3.9.2+) – Cross-platform mobile app development framework
+• Dart Programming Language – Primary language for Flutter development
+
+2. Backend & Database
+• Supabase – Backend-as-a-Service providing:
+   - PostgreSQL Database for storing pothole reports and user data
+   - Authentication for anonymous user login
+   - Cloud Storage for pothole images
+   - Real-time data synchronization
+
+3. Mapping & Location Packages
+• flutter_map – Interactive map display with OpenStreetMap tiles
+• geolocator – GPS location services and user positioning
+• geocoding – Convert coordinates to readable addresses
+• latlong2 – Geographic coordinate calculations
+
+4. Camera & Image Handling
+• camera – In-app camera for capturing pothole photos
+• image_picker – Access device gallery for photo selection
+• cached_network_image – Efficient image loading and caching
+
+5. AI/Machine Learning
+• google_mlkit_image_labeling – On-device AI for automatic pothole severity detection (Low/Medium/High/Critical)
+
+6. State Management
+• flutter_bloc – BLoC pattern for separating business logic from UI
+• equatable – Value equality for state comparison
+
+7. User Interface
+• google_fonts – Custom typography (Poppins, Outfit fonts)
+• flutter_native_splash – Custom branded splash screen
+• flutter_launcher_icons – Custom app icon
+• Material Design 3 – Modern UI components
+
+8. Networking & Sharing
+• http – HTTP requests for API communication
+• url_launcher – Open external links and phone dialer
+• share_plus – Share reports to social media
+• device_info_plus – Device identification
+
+9. App Screens Developed
+• Splash Screen – App branding and initialization
+• Home Screen – Interactive map with pothole markers
+• Report Screen – Capture photo, auto-detect location, AI analysis
+• Dashboard Screen – View reported potholes and status
+• City Dashboard – Analytics, trends, and leaderboards
+• Profile Screen – User statistics and badges
+• Admin Login/Dashboard – Report moderation tools
+• In-App Camera – Custom camera interface
+
+10. Services Created
+• SupabaseService – Database operations and authentication
+• AISeverityService – Machine learning for severity detection
+• AnalyticsService – City-wide statistics and trends
+• CommunityService – Upvoting and engagement features
+• DeviceService – Anonymous user management
+• ShareService – Social sharing functionality
+
+11. Development Tools
+• Android Studio / VS Code – Code editors
+• Git & GitHub – Version control
+• Shorebird – Over-the-air app updates
+• Flutter DevTools – Debugging and performance
+
+12. Hardware Requirements
+For Development:
+• Computer with 8GB+ RAM
+• Windows/macOS/Linux operating system
+• Android device or emulator
+
+For End Users:
+• Android 5.0+ smartphone
+• GPS and camera access
+• Internet connection
