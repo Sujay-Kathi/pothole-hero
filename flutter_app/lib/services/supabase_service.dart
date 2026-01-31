@@ -331,5 +331,36 @@ class SupabaseService {
       return 1;
     }
   }
+
+  // ============ ADMIN AUTHENTICATION ============
+
+  /// Verify admin credentials against the database
+  /// Returns true if credentials are valid, false otherwise
+  Future<bool> verifyAdminCredentials(String username, String password) async {
+    try {
+      debugPrint('🔐 Verifying admin credentials for: $username');
+      
+      final response = await _client
+          .from('admin_credentials')
+          .select('password')
+          .eq('username', username)
+          .eq('is_active', true)
+          .maybeSingle();
+      
+      if (response == null) {
+        debugPrint('❌ Admin user not found: $username');
+        return false;
+      }
+      
+      final storedPassword = response['password'] as String;
+      final isValid = storedPassword == password;
+      
+      debugPrint(isValid ? '✅ Admin login successful' : '❌ Invalid password');
+      return isValid;
+    } catch (e) {
+      debugPrint('❌ Admin verification failed: $e');
+      return false;
+    }
+  }
 }
 

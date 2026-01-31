@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/supabase_service.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -12,32 +13,48 @@ class AdminLoginScreen extends StatefulWidget {
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final SupabaseService _supabaseService = SupabaseService();
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
 
-  // Admin credentials (in production, these should be stored securely)
-  static const String _adminUsername = 'admin';
-  static const String _adminPassword = 'potholehero@123';
+  Future<void> _attemptLogin() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
 
-  void _attemptLogin() {
+    if (username.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter both username and password';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    // Simulate a small delay for UX
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (_usernameController.text == _adminUsername &&
-          _passwordController.text == _adminPassword) {
+    try {
+      // Verify credentials from database
+      final isValid = await _supabaseService.verifyAdminCredentials(username, password);
+      
+      if (!mounted) return;
+      
+      if (isValid) {
         Navigator.pop(context, true); // Return true for successful login
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Invalid credentials';
+          _errorMessage = 'Invalid username or password';
         });
       }
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Login failed. Please check your connection.';
+      });
+    }
   }
 
   @override
